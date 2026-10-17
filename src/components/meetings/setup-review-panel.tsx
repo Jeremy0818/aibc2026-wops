@@ -25,7 +25,9 @@ export function SetupReviewPanel({
   synthesizedBrief,
   keyFacts,
   contextError,
+  finalizeError,
   onReloadContext,
+  onFinalizeSetup,
 }: {
   phase: SetupPhase;
   meeting: Meeting | null;
@@ -34,7 +36,9 @@ export function SetupReviewPanel({
   synthesizedBrief?: string;
   keyFacts: DocumentFact[];
   contextError: WopsApiClientError | null;
+  finalizeError?: WopsApiClientError | null;
   onReloadContext: () => void;
+  onFinalizeSetup?: () => void;
 }) {
   /* Before a draft exists: explain what will happen, never preview fake facts. */
   if (!meeting) {
@@ -44,8 +48,8 @@ export function SetupReviewPanel({
           Extracted facts will appear here after upload
         </p>
         <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
-          WOPS! looks for these in your documents and shows each fact with its
-          page or section:
+          WOPS! reads your attached documents and extracts source-backed facts
+          categorized by:
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {EXTRACTION_TARGETS.map((label) => (
@@ -65,6 +69,8 @@ export function SetupReviewPanel({
   const readyCount = sent.filter((q) => q.status === "ready").length;
   const failedCount = sent.filter((q) => q.status === "failed").length;
   const inProgress = phase === "uploading";
+  const isFinalizing = phase === "finalizing";
+  const isFinalized = phase === "finalized" || meeting.status === "ready";
 
   return (
     <div className="space-y-4">
@@ -73,26 +79,51 @@ export function SetupReviewPanel({
         role="status"
         aria-live="polite"
         className={`rounded-2xl border p-4 ${
-          failedCount > 0
+          isFinalized
+            ? "border-[#cce5d8] bg-[#edf7f2]"
+            : failedCount > 0
             ? "border-[#f2dcc2] bg-[#fdf6ec]"
-            : "border-[#cce5d8] bg-[#edf7f2]"
+            : "border-[#ebe6dd] bg-[#faf9f6]"
         }`}
       >
-        <p className="text-sm font-medium text-[#1f1e1c]">
-          {inProgress
-            ? `Draft created · uploading documents (${readyCount + failedCount}/${sent.length})…`
-            : sent.length === 0
-            ? "Draft created · no documents uploaded yet"
-            : failedCount > 0
-            ? `Draft created · ${readyCount} of ${sent.length} documents grounded, ${failedCount} failed`
-            : `Draft created · all ${sent.length} documents grounded`}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium text-[#1f1e1c]">
+            {isFinalized
+              ? "✓ Meeting setup confirmed & ready for employee preparation!"
+              : inProgress
+              ? `Draft created · uploading documents (${readyCount + failedCount}/${sent.length})…`
+              : sent.length === 0
+              ? "Draft created · no documents uploaded yet"
+              : failedCount > 0
+              ? `Draft created · ${readyCount} of ${sent.length} documents grounded, ${failedCount} failed`
+              : `Draft created · all ${sent.length} documents grounded and ready for confirmation`}
+          </p>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+              isFinalized
+                ? "bg-[#1f6a47] text-white"
+                : "border border-[#ebe6dd] bg-white text-[#5c5852]"
+            }`}
+          >
+            {isFinalized ? "Ready" : "Draft"}
+          </span>
+        </div>
+
         <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
-          {failedCount > 0
-            ? "The meeting draft is saved. Retry failed documents above — successful ones are kept."
-            : "The meeting stays a draft until you confirm setup. A successful upload doesn't make it ready on its own."}
+          {isFinalized
+            ? "Assigned employees can now run role-specific AI preparation sessions grounded in these source facts."
+            : failedCount > 0
+            ? "The meeting draft is saved. Retry failed documents above — successfully grounded facts are kept."
+            : "Review the source-grounded facts below, then click Confirm & Finalize Setup to unlock AI preparation for your team."}
         </p>
       </div>
+
+      {finalizeError ? (
+        <div className="rounded-2xl border border-[#f3c9c0] bg-[#fdf0ed] p-4 text-xs text-[#a5321b]">
+          <p className="font-semibold">Setup Finalization Error</p>
+          <p className="mt-0.5">{finalizeError.message}</p>
+        </div>
+      ) : null}
 
       {contextError ? (
         <div className="rounded-2xl border border-[#f3c9c0] bg-[#fdf0ed] p-4 text-xs text-[#a5321b]">
@@ -113,30 +144,45 @@ export function SetupReviewPanel({
         keyFacts={keyFacts}
       />
 
-      {!inProgress && documents.some((d) => d.processingStatus === "ready") ? (
-        <p className="rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-3.5 text-[11px] leading-relaxed text-[#5c5852]">
-          Facts are shown exactly as extracted, with their sources. Grouping
-          them into objectives, audience, budget and deliverables, flagging
-          missing items, and correcting them need backend support that
-          isn&apos;t available yet.
-        </p>
-      ) : null}
-
+      {/* Action Bar */}
       {!inProgress ? (
-        <div className="flex flex-col gap-2 border-t border-[#ebe6dd] pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            disabled
-            title="Requires a finalize endpoint from the backend"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-[#faf9f6] px-5 text-sm font-medium text-[#8a847b]"
-          >
-            Confirm setup · needs backend finalize step
-          </button>
+        <div className="flex flex-col gap-3 border-t border-[#ebe6dd] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          {!isFinalized ? (
+            <button
+              type="button"
+              onClick={onFinalizeSetup}
+              disabled={isFinalizing || documents.filter((d) => d.processingStatus === "ready").length === 0}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#d95d39] px-6 text-sm font-medium text-white shadow-xs transition hover:bg-[#c34e2c] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
+            >
+              {isFinalizing ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Finalizing meeting setup…</span>
+                </>
+              ) : (
+                <>
+                  <span>Confirm &amp; Finalize Setup</span>
+                  <span aria-hidden="true">✓</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/prepare/${encodeURIComponent(meeting.id)}`}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#1f1e1c] px-5 text-sm font-medium text-white transition hover:bg-[#3a3835]"
+              >
+                <span>Go to Employee Preparation</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          )}
+
           <Link
             href={`/meetings/${encodeURIComponent(meeting.id)}`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 text-sm font-medium text-white transition hover:bg-[#c34e2c]"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-5 text-sm font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea]"
           >
-            Open meeting <span aria-hidden="true">→</span>
+            Open Meeting Overview →
           </Link>
         </div>
       ) : null}

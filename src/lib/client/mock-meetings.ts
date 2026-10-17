@@ -1,26 +1,95 @@
 import {
   DocumentMetadataSchema,
+  DocumentFactSchema,
   MeetingContextResponseSchema,
   type DocumentFact,
   type DocumentMetadata,
   type DocumentType,
   type MeetingContextResponse,
+  type UpdateDocumentFactRequest,
 } from "@/contracts/document";
 import {
   CreateMeetingRequestSchema,
   MeetingSchema,
   type CreateMeetingRequest,
+  type FinalizeMeetingRequest,
   type Meeting,
 } from "@/contracts/meeting";
 
 const MOCK_MODE_STORAGE_KEY = "wops:use_mock_api";
 const MOCK_MEETINGS_STORAGE_KEY = "wops:mock_meetings_v2";
-const MOCK_DOCUMENTS_STORAGE_KEY = "wops:mock_documents_v1";
+const MOCK_DOCUMENTS_STORAGE_KEY = "wops:mock_documents_v2";
 
 /**
- * Seeded KOVA Demo Meeting matching MeetingSchema and API_CONTRACT.md.
- * Includes Creative Team Lead plus two distinct employee participants
- * (Creative Campaign Planner and Senior Brand Designer) sharing the same meeting brief.
+ * Seeded KOVA Demo Facts matching Contract V2 with typed categories and provenance.
+ */
+export const KOVA_SEED_FACTS: DocumentFact[] = [
+  {
+    id: "fact_01",
+    statement:
+      "KOVA Light contains 5g of cane sugar per 200ml can and uses a 100% Indonesian Arabica-Robusta blend.",
+    category: "requirement",
+    provenance: "extracted",
+    pageOrSection: "Page 2 — Product Specs",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+  {
+    id: "fact_02",
+    statement:
+      "Primary launch cities are Jakarta and Surabaya, focusing on MRT/commuter transit corridors and office districts.",
+    category: "target_audience",
+    provenance: "extracted",
+    pageOrSection: "Page 3 — Market & Distribution",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+  {
+    id: "fact_03",
+    statement:
+      "Consumer taste panels showed 78% of 20–32 commuters avoid 'diet' coffee labels because they expect a watery aftertaste.",
+    category: "constraint",
+    provenance: "extracted",
+    pageOrSection: "Page 4 — Audience Research",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+  {
+    id: "fact_04",
+    statement:
+      "Total campaign budget ceiling is Rp250,000,000 across a 6-week launch window; all copy and visual callouts must avoid medical or weight-loss claims.",
+    category: "budget",
+    provenance: "extracted",
+    pageOrSection: "Page 5 — Budget & Brand Guardrails",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+];
+
+export const KOVA_SEED_DOCUMENT: DocumentMetadata = DocumentMetadataSchema.parse(
+  {
+    id: "doc_kova_brief_01",
+    meetingId: "mtg_kova_001",
+    name: "KOVA-Brand-Brief-2026.pdf",
+    mimeType: "application/pdf",
+    sizeBytes: 418290,
+    type: "brief",
+    processingStatus: "ready",
+    storageUri: "gs://wops-documents/mtg_kova_001/doc_kova_brief_01.pdf",
+    summary:
+      "Client brief for KOVA Light low-sugar RTD coffee launch targeting urban commuters in Jakarta and Surabaya with a Rp250,000,000 budget ceiling.",
+    extractedFacts: KOVA_SEED_FACTS,
+    uploadedAt: "2026-10-17T15:05:00.000Z",
+    processedAt: "2026-10-17T15:05:04.000Z",
+  }
+);
+
+/**
+ * Seeded KOVA Demo Meeting in finalized 'ready' status.
  */
 export const KOVA_SEED_MEETING: Meeting = MeetingSchema.parse({
   id: "mtg_kova_001",
@@ -30,22 +99,6 @@ export const KOVA_SEED_MEETING: Meeting = MeetingSchema.parse({
   scheduledAt: "2026-10-20T03:00:00.000Z",
   meetingObjective:
     "Align on a primary creative direction, visual territory, and 6-week launch plan prior to agency review",
-  clientObjective:
-    "Drive trial among urban young professionals in Jakarta and Surabaya without sacrificing coffee taste perception",
-  clientRequirements: [
-    "Highlight low-sugar positioning (5g cane sugar per 200ml can) without making clinical or medical health claims",
-    "Include creator-led social activation and commuter hub trial mechanics",
-    "Deliver a 6-week phased rollout schedule and cohesive visual asset system with clear KPIs",
-  ],
-  targetAudience:
-    "Indonesian urban Gen Z and young millennial commuters in Jakarta and Surabaya (ages 20-32)",
-  constraints: [
-    "KOVA is a fictional Indonesian ready-to-drink coffee brand for demo purposes",
-    "No unsupported medical, weight-loss, or clinical health claims",
-    "Budget ceiling is Rp250,000,000 (ceiling, not a mandatory full spend)",
-  ],
-  budgetCeilingIdr: 250000000,
-  participantRole: "Creative Campaign Planner",
   leadRole: "Creative Team Lead",
   participants: [
     {
@@ -69,55 +122,30 @@ export const KOVA_SEED_MEETING: Meeting = MeetingSchema.parse({
   ],
   status: "ready",
   documentIds: ["doc_kova_brief_01"],
+  clientObjective:
+    "Drive trial among urban young professionals in Jakarta and Surabaya without sacrificing coffee taste perception",
+  clientRequirements: [
+    "Highlight low-sugar positioning (5g cane sugar per 200ml can) without making clinical or medical health claims",
+    "Include creator-led social activation and commuter hub trial mechanics",
+    "Deliver a 6-week phased rollout schedule and cohesive visual asset system with clear KPIs",
+  ],
+  targetAudience:
+    "Indonesian urban Gen Z and young millennial commuters in Jakarta and Surabaya (ages 20-32)",
+  constraints: [
+    "KOVA is a fictional Indonesian ready-to-drink coffee brand for demo purposes",
+    "No unsupported medical, weight-loss, or clinical health claims",
+    "Budget ceiling is Rp250,000,000 (ceiling, not a mandatory full spend)",
+  ],
+  budgetCeilingIdr: 250000000,
+  participantRole: "Creative Campaign Planner",
   createdAt: "2026-10-17T15:00:00.000Z",
   updatedAt: "2026-10-17T15:10:00.000Z",
+  finalizedAt: "2026-10-17T15:10:00.000Z",
 });
 
-export const KOVA_SEED_FACTS: DocumentFact[] = [
-  {
-    id: "fact_01",
-    statement:
-      "KOVA Light contains 5g of cane sugar per 200ml can and uses a 100% Indonesian Arabica-Robusta blend.",
-    pageOrSection: "Page 2 — Product Specs",
-  },
-  {
-    id: "fact_02",
-    statement:
-      "Primary launch cities are Jakarta and Surabaya, focusing on MRT/commuter transit corridors and office districts.",
-    pageOrSection: "Page 3 — Market & Distribution",
-  },
-  {
-    id: "fact_03",
-    statement:
-      "Consumer taste panels showed 78% of 20–32 commuters avoid 'diet' coffee labels because they expect a watery aftertaste.",
-    pageOrSection: "Page 4 — Audience Research",
-  },
-  {
-    id: "fact_04",
-    statement:
-      "Total campaign budget ceiling is Rp250,000,000 across a 6-week launch window; all copy and visual callouts must avoid medical or weight-loss claims.",
-    pageOrSection: "Page 5 — Budget & Brand Guardrails",
-  },
-];
-
-export const KOVA_SEED_DOCUMENT: DocumentMetadata = DocumentMetadataSchema.parse(
-  {
-    id: "doc_kova_brief_01",
-    meetingId: "mtg_kova_001",
-    name: "KOVA-Brand-Brief-2026.pdf",
-    mimeType: "application/pdf",
-    sizeBytes: 418290,
-    type: "brief",
-    processingStatus: "ready",
-    storageUri: "gs://wops-documents/mtg_kova_001/doc_kova_brief_01.pdf",
-    summary:
-      "Client brief for KOVA Light low-sugar RTD coffee launch targeting urban commuters in Jakarta and Surabaya with a Rp250,000,000 budget ceiling.",
-    extractedFacts: KOVA_SEED_FACTS,
-    uploadedAt: "2026-10-17T15:05:00.000Z",
-    processedAt: "2026-10-17T15:05:04.000Z",
-  }
-);
-
+/**
+ * Minimal Team Lead KOVA Demo Draft (Contract V2)
+ */
 export const KOVA_DEMO_MEETING_DRAFT: CreateMeetingRequest =
   CreateMeetingRequestSchema.parse({
     title: "KOVA Low-Sugar RTD Launch Ideation",
@@ -126,29 +154,8 @@ export const KOVA_DEMO_MEETING_DRAFT: CreateMeetingRequest =
     scheduledAt: "2026-10-20T03:00:00.000Z",
     meetingObjective:
       "Align on a primary creative direction, visual territory, and 6-week launch plan prior to agency review",
-    clientObjective:
-      "Drive trial among urban young professionals in Jakarta and Surabaya without sacrificing coffee taste perception",
-    clientRequirements: [
-      "Highlight low-sugar positioning without making clinical or medical health claims",
-      "Include creator-led social activation and convenience store trial mechanics",
-      "Deliver a cohesive visual campaign system for social, POS, and commuter sampling booths",
-    ],
-    targetAudience:
-      "Indonesian urban Gen Z and young millennial commuters (ages 20-32)",
-    constraints: [
-      "KOVA is a fictional brand",
-      "No unsupported health claims",
-      "Budget ceiling is Rp250,000,000 for the demo, not a mandatory spend",
-    ],
-    budgetCeilingIdr: 250000000,
-    participantRole: "Creative Campaign Planner",
     leadRole: "Creative Team Lead",
     participants: [
-      {
-        name: "Raka Pratama",
-        role: "Creative Team Lead",
-        email: "raka.pratama@agency-demo.id",
-      },
       {
         name: "Nadia Kusuma",
         role: "Creative Campaign Planner",
@@ -167,10 +174,12 @@ export function isEnvMockModeEnabled(): boolean {
 }
 
 export function isMockModeEnabled(): boolean {
-  if (typeof window !== "undefined") {
-    const storedOverride = window.localStorage.getItem(MOCK_MODE_STORAGE_KEY);
-    if (storedOverride === "true") return true;
-    if (storedOverride === "false") return false;
+  if (typeof window === "undefined") {
+    return isEnvMockModeEnabled();
+  }
+  const localOverride = window.localStorage.getItem(MOCK_MODE_STORAGE_KEY);
+  if (localOverride !== null) {
+    return localOverride === "true";
   }
   return isEnvMockModeEnabled();
 }
@@ -178,36 +187,38 @@ export function isMockModeEnabled(): boolean {
 export function setLocalMockModeOverride(enabled: boolean): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(MOCK_MODE_STORAGE_KEY, enabled ? "true" : "false");
-  window.dispatchEvent(new CustomEvent("wops:mock-mode-changed"));
+  window.dispatchEvent(
+    new CustomEvent("wops:mock-mode-change", { detail: { enabled } })
+  );
 }
 
 function readStoredMockMeetings(): Meeting[] {
   if (typeof window === "undefined") {
     return [KOVA_SEED_MEETING];
   }
-
   try {
     const raw = window.localStorage.getItem(MOCK_MEETINGS_STORAGE_KEY);
     if (!raw) {
-      const initial = [KOVA_SEED_MEETING];
-      window.localStorage.setItem(
-        MOCK_MEETINGS_STORAGE_KEY,
-        JSON.stringify(initial)
-      );
-      return initial;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
+      writeStoredMockMeetings([KOVA_SEED_MEETING]);
       return [KOVA_SEED_MEETING];
     }
-
-    const validMeetings = parsed
-      .map((item) => MeetingSchema.safeParse(item))
-      .filter((res) => res.success)
-      .map((res) => res.data);
-
-    return validMeetings.length > 0 ? validMeetings : [KOVA_SEED_MEETING];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      writeStoredMockMeetings([KOVA_SEED_MEETING]);
+      return [KOVA_SEED_MEETING];
+    }
+    const validMeetings: Meeting[] = [];
+    for (const item of parsed) {
+      const check = MeetingSchema.safeParse(item);
+      if (check.success) {
+        validMeetings.push(check.data);
+      }
+    }
+    if (validMeetings.length === 0) {
+      writeStoredMockMeetings([KOVA_SEED_MEETING]);
+      return [KOVA_SEED_MEETING];
+    }
+    return validMeetings;
   } catch {
     return [KOVA_SEED_MEETING];
   }
@@ -221,7 +232,7 @@ function writeStoredMockMeetings(meetings: Meeting[]): void {
       JSON.stringify(meetings)
     );
   } catch {
-    // Ignore storage quota errors in mock adapter
+    // Ignore localStorage write errors
   }
 }
 
@@ -229,50 +240,55 @@ function readStoredMockDocuments(): DocumentMetadata[] {
   if (typeof window === "undefined") {
     return [KOVA_SEED_DOCUMENT];
   }
-
   try {
     const raw = window.localStorage.getItem(MOCK_DOCUMENTS_STORAGE_KEY);
     if (!raw) {
-      const initial = [KOVA_SEED_DOCUMENT];
-      window.localStorage.setItem(
-        MOCK_DOCUMENTS_STORAGE_KEY,
-        JSON.stringify(initial)
-      );
-      return initial;
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
+      writeStoredMockDocuments([KOVA_SEED_DOCUMENT]);
       return [KOVA_SEED_DOCUMENT];
     }
-
-    const validDocs = parsed
-      .map((item) => DocumentMetadataSchema.safeParse(item))
-      .filter((res) => res.success)
-      .map((res) => res.data);
-
-    return validDocs.length > 0 ? validDocs : [KOVA_SEED_DOCUMENT];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      writeStoredMockDocuments([KOVA_SEED_DOCUMENT]);
+      return [KOVA_SEED_DOCUMENT];
+    }
+    const validDocs: DocumentMetadata[] = [];
+    for (const item of parsed) {
+      const check = DocumentMetadataSchema.safeParse(item);
+      if (check.success) {
+        validDocs.push(check.data);
+      }
+    }
+    if (validDocs.length === 0) {
+      writeStoredMockDocuments([KOVA_SEED_DOCUMENT]);
+      return [KOVA_SEED_DOCUMENT];
+    }
+    return validDocs;
   } catch {
     return [KOVA_SEED_DOCUMENT];
   }
 }
 
-function writeStoredMockDocuments(documents: DocumentMetadata[]): void {
+function writeStoredMockDocuments(docs: DocumentMetadata[]): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(
       MOCK_DOCUMENTS_STORAGE_KEY,
-      JSON.stringify(documents)
+      JSON.stringify(docs)
     );
   } catch {
-    // Ignore storage quota errors in mock adapter
+    // Ignore localStorage write errors
   }
 }
 
 function upsertStoredMockDocument(doc: DocumentMetadata): void {
   const existing = readStoredMockDocuments();
-  const filtered = existing.filter((d) => d.id !== doc.id);
-  writeStoredMockDocuments([doc, ...filtered]);
+  const index = existing.findIndex((d) => d.id === doc.id);
+  if (index === -1) {
+    writeStoredMockDocuments([doc, ...existing]);
+  } else {
+    existing[index] = doc;
+    writeStoredMockDocuments(existing);
+  }
 }
 
 export function resetMockMeetingsToKovaDefault(): Meeting[] {
@@ -317,6 +333,8 @@ export async function mockCreateMeeting(
     })),
     status: "draft",
     documentIds: [],
+    clientRequirements: validatedInput.clientRequirements ?? [],
+    constraints: validatedInput.constraints ?? [],
     createdAt: nowIso,
     updatedAt: nowIso,
   });
@@ -329,19 +347,101 @@ export async function mockCreateMeeting(
 export async function mockMarkMeetingSetupReady(
   meetingId: string
 ): Promise<Meeting | null> {
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  return mockFinalizeMeeting(meetingId, {});
+}
+
+export async function mockFinalizeMeeting(
+  meetingId: string,
+  input: FinalizeMeetingRequest
+): Promise<Meeting> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
   const meetings = readStoredMockMeetings();
   const idx = meetings.findIndex((m) => m.id === meetingId);
-  if (idx === -1) return null;
+  if (idx === -1) {
+    throw new Error(`Meeting "${meetingId}" not found in mock storage.`);
+  }
+
+  const existing = meetings[idx];
+  const nowIso = new Date().toISOString();
+
+  // If client fields not set, derive fallback defaults from grounded facts or presets
+  const finalizedClientObjective =
+    input.clientObjective ??
+    existing.clientObjective ??
+    `Drive high-impact launch trial for ${existing.clientName} (${existing.projectName}) with clear, grounded messaging.`;
+
+  const finalizedAudience =
+    input.targetAudience ??
+    existing.targetAudience ??
+    "Urban Indonesian young adults and daily commuters (ages 20-32)";
+
+  const finalizedBudget =
+    input.budgetCeilingIdr ?? existing.budgetCeilingIdr ?? 250000000;
+
+  const finalizedRequirements =
+    input.clientRequirements ??
+    (existing.clientRequirements.length > 0
+      ? existing.clientRequirements
+      : [
+          "Highlight low-sugar positioning without medical claims",
+          "Include creator-led social activation and commuter trial mechanics",
+        ]);
+
+  const finalizedConstraints =
+    input.constraints ??
+    (existing.constraints.length > 0
+      ? existing.constraints
+      : [
+          `${existing.clientName} is for demo preparation purposes`,
+          "No unsupported health or clinical claims",
+        ]);
 
   const updated: Meeting = MeetingSchema.parse({
-    ...meetings[idx],
+    ...existing,
+    clientObjective: finalizedClientObjective,
+    targetAudience: finalizedAudience,
+    budgetCeilingIdr: finalizedBudget,
+    clientRequirements: finalizedRequirements,
+    constraints: finalizedConstraints,
     status: "ready",
-    updatedAt: new Date().toISOString(),
+    finalizedAt: nowIso,
+    updatedAt: nowIso,
   });
+
   meetings[idx] = updated;
   writeStoredMockMeetings(meetings);
   return updated;
+}
+
+export async function mockUpdateDocumentFact(
+  meetingId: string,
+  factId: string,
+  input: UpdateDocumentFactRequest
+): Promise<DocumentFact> {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const allDocs = readStoredMockDocuments();
+  for (const doc of allDocs) {
+    if (doc.meetingId === meetingId) {
+      const factIdx = doc.extractedFacts.findIndex((f) => f.id === factId);
+      if (factIdx !== -1) {
+        const existingFact = doc.extractedFacts[factIdx];
+        const updatedFact = DocumentFactSchema.parse({
+          ...existingFact,
+          ...(input.statement !== undefined ? { statement: input.statement } : {}),
+          ...(input.category !== undefined ? { category: input.category } : {}),
+          ...(input.provenance !== undefined ? { provenance: input.provenance } : {}),
+          ...(input.confirmedByLead !== undefined
+            ? { confirmedByLead: input.confirmedByLead }
+            : {}),
+        });
+        doc.extractedFacts[factIdx] = updatedFact;
+        upsertStoredMockDocument(doc);
+        return updatedFact;
+      }
+    }
+  }
+
+  throw new Error(`Fact "${factId}" not found in mock documents for meeting "${meetingId}".`);
 }
 
 export async function mockGetMeetingContext(
@@ -385,6 +485,7 @@ export async function mockGetMeetingContext(
     documents: meetingDocs,
     ...(synthesizedBrief ? { synthesizedBrief } : {}),
     keyFacts,
+    missingCategories: [],
   });
 }
 
@@ -469,11 +570,48 @@ export async function mockUploadMeetingDocument(
   const extractedFacts: DocumentFact[] =
     outcome === "empty_facts"
       ? []
-      : KOVA_SEED_FACTS.map((fact, idx) => ({
-          id: `${docId}_fact_${idx + 1}`,
-          statement: fact.statement,
-          pageOrSection: fact.pageOrSection,
-        }));
+      : [
+          {
+            id: `${docId}_fact_01`,
+            statement: `${targetMeeting.clientName} brief: 5g cane sugar per 200ml can with 100% Indonesian Arabica-Robusta blend.`,
+            category: "requirement",
+            provenance: "extracted",
+            pageOrSection: "Page 2 — Product Specs",
+            sourceDocumentId: docId,
+            sourceDocumentName: file.name,
+            confirmedByLead: false,
+          },
+          {
+            id: `${docId}_fact_02`,
+            statement: "Target audience focuses on urban young professional commuters (ages 20-32) in Jakarta and Surabaya.",
+            category: "target_audience",
+            provenance: "extracted",
+            pageOrSection: "Page 3 — Distribution",
+            sourceDocumentId: docId,
+            sourceDocumentName: file.name,
+            confirmedByLead: false,
+          },
+          {
+            id: `${docId}_fact_03`,
+            statement: "Rp250,000,000 budget ceiling covering social creator seeding, sampling hubs, and digital flight.",
+            category: "budget",
+            provenance: "extracted",
+            pageOrSection: "Page 4 — Budget",
+            sourceDocumentId: docId,
+            sourceDocumentName: file.name,
+            confirmedByLead: false,
+          },
+          {
+            id: `${docId}_fact_04`,
+            statement: "Strict guardrail: avoid clinical, medical, or weight-loss claims across all communications.",
+            category: "constraint",
+            provenance: "extracted",
+            pageOrSection: "Page 5 — Compliance",
+            sourceDocumentId: docId,
+            sourceDocumentName: file.name,
+            confirmedByLead: false,
+          },
+        ];
 
   const summary =
     outcome === "empty_facts"
@@ -490,8 +628,8 @@ export async function mockUploadMeetingDocument(
 
   upsertStoredMockDocument(readyDoc);
 
-  // Link documentId to the meeting. Meeting readiness is NOT inferred from a
-  // single successful upload — it requires an explicit Team Lead confirmation.
+  // Link documentId to the meeting.
+  // Note: Status stays 'draft' until explicit Team Lead finalization.
   const latestMeetings = readStoredMockMeetings();
   const idx = latestMeetings.findIndex((m) => m.id === meetingId);
   if (idx !== -1) {

@@ -41,11 +41,12 @@ export function getAssignedEmployeesForMeeting(
     return meeting.participants;
   }
 
+  const fallbackRole = meeting.participantRole || "Participant";
   return [
     {
       id: `role_${meeting.id}_default`,
-      name: meeting.participantRole,
-      role: meeting.participantRole,
+      name: fallbackRole,
+      role: fallbackRole,
     },
   ];
 }

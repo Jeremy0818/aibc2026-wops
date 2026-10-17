@@ -9,14 +9,20 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-export function formatIdr(amountIdr: number): string {
+export function formatIdr(amountIdr?: number | null): string {
+  if (amountIdr === undefined || amountIdr === null) {
+    return "TBD (from brief)";
+  }
   if (!Number.isFinite(amountIdr)) {
     return "Rp0";
   }
   return `Rp${numberFormatter.format(Math.trunc(amountIdr))}`;
 }
 
-export function formatIdrLocale(amountIdr: number): string {
+export function formatIdrLocale(amountIdr?: number | null): string {
+  if (amountIdr === undefined || amountIdr === null) {
+    return "TBD";
+  }
   if (!Number.isFinite(amountIdr)) {
     return "Rp 0";
   }

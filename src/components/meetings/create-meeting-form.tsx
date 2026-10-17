@@ -9,7 +9,6 @@ import { KOVA_DEMO_MEETING_DRAFT } from "@/lib/client/mock-meetings";
 import { ErrorState } from "@/components/ui/state-views";
 import { ClientDocumentsPicker } from "./client-documents-picker";
 import { SetupReviewPanel } from "./setup-review-panel";
-import { ContractBlockedNotice } from "./contract-blocked-notice";
 
 interface ParticipantDraft {
   name: string;
@@ -55,7 +54,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function CreateMeetingForm() {
-  const { mockMode, toggleMockMode } = useMockMode();
+  const { mockMode } = useMockMode();
   const setup = useDocumentFirstSetup();
 
   const [title, setTitle] = useState("");
@@ -147,8 +146,8 @@ export function CreateMeetingForm() {
             Create Meeting
           </h1>
           <p className="max-w-lg text-sm leading-relaxed text-[#5c5852]">
-            Add the basics, attach the client&apos;s documents, and assign your
-            team. WOPS! reads the brief for you — no retyping requirements.
+            Add meeting basics, attach the client&apos;s documents, and assign your
+            team. WOPS! extracts the brief for you — no manual transcription required.
           </p>
         </div>
 
@@ -170,7 +169,7 @@ export function CreateMeetingForm() {
           <SectionHeading
             step={1}
             title="Meeting basics"
-            description="Just what your team needs to recognise the meeting. The client brief comes from the documents below."
+            description="Essential meeting metadata. The client campaign brief will be extracted from the documents below."
           />
           <fieldset disabled={formDisabled} className="mt-5 space-y-4">
             <div>
@@ -261,7 +260,7 @@ export function CreateMeetingForm() {
           <SectionHeading
             step={2}
             title="Client documents"
-            description="Attach the brief once for the whole team. WOPS! extracts objectives, audience, budget and constraints with page references."
+            description="Attach client briefs once for the whole team. WOPS! extracts objectives, audience, budget ceiling, and constraints with source citations."
           />
           <div className="mt-5">
             <ClientDocumentsPicker
@@ -281,7 +280,7 @@ export function CreateMeetingForm() {
           <SectionHeading
             step={3}
             title="Who's preparing?"
-            description="Everyone shares the same documents. Each role gets its own AI preparation focus."
+            description="All assigned employees share the same client document brief. Each role gets its own tailored AI preparation session."
           />
           <fieldset disabled={formDisabled} className="mt-5 space-y-4">
             <div>
@@ -318,10 +317,6 @@ export function CreateMeetingForm() {
                   + Add employee
                 </button>
               </div>
-              <p className="mt-1 text-[11px] text-[#8a847b]">
-                The first employee&apos;s role is used as the primary preparation
-                role.
-              </p>
 
               <div className="mt-3 space-y-3">
                 {participants.map((person, index) => {
@@ -394,12 +389,12 @@ export function CreateMeetingForm() {
           </fieldset>
         </section>
 
-        {/* 4. Review — before submit it explains; after draft it shows grounded facts */}
+        {/* 4. Review — grounded facts review and explicit setup finalization */}
         <section className="wops-warm-card rounded-3xl p-5 sm:p-7">
           <SectionHeading
             step={4}
-            title="Review the extracted brief"
-            description="Facts WOPS! pulls from your documents, each with its source. Nothing here is typed in or guessed."
+            title="Review the extracted brief & finalize"
+            description="Source-backed facts extracted from your documents. Confirming setup unlocks role-aware AI preparation for your team."
           />
           <div className="mt-5">
             <SetupReviewPanel
@@ -410,29 +405,20 @@ export function CreateMeetingForm() {
               synthesizedBrief={setup.synthesizedBrief}
               keyFacts={setup.keyFacts}
               contextError={setup.contextError}
+              finalizeError={setup.finalizeError}
               onReloadContext={() =>
                 setup.meeting ? void setup.refreshContext(setup.meeting.id) : undefined
               }
+              onFinalizeSetup={() => void setup.finalizeSetup()}
             />
           </div>
         </section>
-
-        {phase === "blocked_by_contract" ? (
-          <ContractBlockedNotice
-            blockers={setup.contractBlockers}
-            selectedFileCount={selectableCount}
-            mockMode={mockMode}
-            onDismiss={setup.backToEditing}
-          />
-        ) : null}
 
         {phase === "draft_failed" && setup.draftError ? (
           <ErrorState
             title="Couldn't create the meeting draft"
             message={`${setup.draftError.message} Nothing was uploaded — your details and selected files are still here.`}
             code={setup.draftError.code}
-            showMockToggle={!mockMode}
-            onEnableMockMode={() => toggleMockMode(true)}
           />
         ) : null}
 
@@ -460,7 +446,7 @@ export function CreateMeetingForm() {
                   <span>
                     {selectableCount > 0
                       ? `Create meeting & upload ${selectableCount} ${selectableCount === 1 ? "document" : "documents"}`
-                      : "Create meeting"}
+                      : "Create meeting draft"}
                   </span>
                   <span aria-hidden="true">→</span>
                 </>

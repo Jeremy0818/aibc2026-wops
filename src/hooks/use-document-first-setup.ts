@@ -1,29 +1,38 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { Meeting } from "@/contracts/meeting";
-import type { DocumentFact, DocumentMetadata } from "@/contracts/document";
-import { createMeeting, WopsApiClientError } from "@/lib/client/meetings-api";
+import type { Meeting, FinalizeMeetingRequest } from "@/contracts/meeting";
+import type {
+  DocumentFact,
+  DocumentMetadata,
+  UpdateDocumentFactRequest,
+} from "@/contracts/document";
+import {
+  createMeeting,
+  finalizeMeeting,
+  WopsApiClientError,
+} from "@/lib/client/meetings-api";
 import {
   getMeetingContext,
+  updateDocumentFact,
   uploadMeetingDocument,
 } from "@/lib/client/documents-api";
 import {
   checkDraftAgainstContract,
   classifySelectedFile,
   fileFingerprint,
-  type DocumentDerivedField,
   type QueuedFile,
   type TeamLeadDraftInput,
 } from "@/lib/client/document-first-setup";
 
 export type SetupPhase =
-  | "editing" // Team Lead is filling basics, team, and selecting files
-  | "blocked_by_contract" // shared contract still requires document-derived fields
-  | "creating_draft"
+  | "editing" // Team Lead is entering basics, team, and selecting files
+  | "creating_draft" // creating minimal meeting draft
   | "draft_failed" // POST /api/meetings failed — nothing uploaded
-  | "uploading" // draft exists; files are being uploaded sequentially
-  | "review"; // all attempts finished (some may have failed)
+  | "uploading" // draft exists; files uploading & extracting sequentially
+  | "review" // all upload attempts finished; review extracted grounded facts
+  | "finalizing" // calling POST /api/meetings/{id}/finalize
+  | "finalized"; // meeting marked ready for employee preparation
 
 function toClientError(err: unknown, fallback: string): WopsApiClientError {
   if (err instanceof WopsApiClientError) return err;
@@ -44,10 +53,10 @@ export function useDocumentFirstSetup() {
   const [phase, setPhase] = useState<SetupPhase>("editing");
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [contractBlockers, setContractBlockers] = useState<
-    DocumentDerivedField[]
-  >([]);
   const [draftError, setDraftError] = useState<WopsApiClientError | null>(null);
+  const [finalizeError, setFinalizeError] = useState<WopsApiClientError | null>(
+    null
+  );
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [contextDocuments, setContextDocuments] = useState<DocumentMetadata[]>(
     []
@@ -58,11 +67,13 @@ export function useDocumentFirstSetup() {
     null
   );
 
-  // Guards against double submission and concurrent retries of the same file.
   const inFlightRef = useRef(false);
   const retryingRef = useRef(new Set<string>());
 
-  const isLocked = phase === "creating_draft" || phase === "uploading";
+  const isLocked =
+    phase === "creating_draft" ||
+    phase === "uploading" ||
+    phase === "finalizing";
   const hasDraft = meeting !== null;
 
   const patchFile = useCallback(
@@ -87,7 +98,7 @@ export function useDocumentFirstSetup() {
         const additions: QueuedFile[] = [];
         for (const file of incoming) {
           const fingerprint = fileFingerprint(file);
-          if (seen.has(fingerprint)) continue; // prevent duplicate selection
+          if (seen.has(fingerprint)) continue;
           seen.add(fingerprint);
           const check = classifySelectedFile(file);
           additions.push({
@@ -132,7 +143,8 @@ export function useDocumentFirstSetup() {
         });
         const ok = doc.processingStatus !== "failed";
         patchFile(item.localId, {
-          status: doc.processingStatus === "pending" ? "processing" : doc.processingStatus,
+          status:
+            doc.processingStatus === "pending" ? "processing" : doc.processingStatus,
           document: doc,
           message: ok ? undefined : doc.errorMessage,
         });
@@ -172,18 +184,11 @@ export function useDocumentFirstSetup() {
 
       if (!check.ok) {
         setFieldErrors(check.fieldErrors);
-        const teamLeadFieldsValid = Object.keys(check.fieldErrors).length === 0;
-        if (teamLeadFieldsValid && check.contractBlockers.length > 0) {
-          setContractBlockers(check.contractBlockers);
-          setPhase("blocked_by_contract");
-        } else {
-          setPhase("editing");
-        }
+        setPhase("editing");
         return;
       }
 
       setFieldErrors({});
-      setContractBlockers([]);
       inFlightRef.current = true;
       setPhase("creating_draft");
 
@@ -207,8 +212,6 @@ export function useDocumentFirstSetup() {
       }
 
       setPhase("uploading");
-      // Sequential uploads keep ordering predictable and avoid overloading
-      // the extraction pipeline. Rejected files are never sent.
       const toUpload = queue.filter((item) => item.status === "queued");
       for (const item of toUpload) {
         await uploadOne(created.id, item);
@@ -223,7 +226,7 @@ export function useDocumentFirstSetup() {
 
   const retryFile = useCallback(
     async (localId: string) => {
-      if (!meeting || phase === "uploading") return;
+      if (!meeting || phase === "uploading" || phase === "finalizing") return;
       if (retryingRef.current.has(localId)) return;
       const item = queue.find((q) => q.localId === localId);
       if (!item || item.status !== "failed") return;
@@ -239,10 +242,43 @@ export function useDocumentFirstSetup() {
     [meeting, phase, queue, uploadOne, refreshContext]
   );
 
+  /* ------------------------------- Finalize ------------------------------ */
+
+  const finalizeSetup = useCallback(
+    async (overrides?: FinalizeMeetingRequest) => {
+      if (!meeting || phase === "finalizing") return;
+      setFinalizeError(null);
+      setPhase("finalizing");
+      try {
+        const finalized = await finalizeMeeting(meeting.id, overrides);
+        setMeeting(finalized);
+        await refreshContext(finalized.id);
+        setPhase("finalized");
+      } catch (err) {
+        const clientErr = toClientError(err, "Failed to finalize meeting setup");
+        setFinalizeError(clientErr);
+        setPhase("review");
+      }
+    },
+    [meeting, phase, refreshContext]
+  );
+
+  const updateFact = useCallback(
+    async (factId: string, patch: UpdateDocumentFactRequest) => {
+      if (!meeting) return;
+      try {
+        await updateDocumentFact(meeting.id, factId, patch);
+        await refreshContext(meeting.id);
+      } catch (err) {
+        setContextError(toClientError(err, "Failed to update fact"));
+      }
+    },
+    [meeting, refreshContext]
+  );
+
   const backToEditing = useCallback(() => {
     if (hasDraft) return;
     setPhase("editing");
-    setContractBlockers([]);
     setDraftError(null);
   }, [hasDraft]);
 
@@ -250,8 +286,8 @@ export function useDocumentFirstSetup() {
     phase,
     queue,
     fieldErrors,
-    contractBlockers,
     draftError,
+    finalizeError,
     meeting,
     contextDocuments,
     synthesizedBrief,
@@ -263,6 +299,8 @@ export function useDocumentFirstSetup() {
     removeFile,
     submit,
     retryFile,
+    finalizeSetup,
+    updateFact,
     backToEditing,
     refreshContext,
   };

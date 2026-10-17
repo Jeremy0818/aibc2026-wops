@@ -42,10 +42,28 @@ export const ProposalSourceReferenceSchema = z.object({
   citationNote: z.string().optional(),
 });
 
+export const ParticipantContributionSchema = z.object({
+  participantId: z.string().min(1),
+  participantName: z.string().min(1),
+  participantRole: z.string().min(1),
+  sessionId: z.string().min(1).optional(),
+  decisionsCount: z.number().int().nonnegative().default(0),
+  completedPrep: z.boolean().default(false),
+});
+
+/**
+ * Contract V2: CampaignProposalSchema
+ * Supports aggregation of decisions from multiple role-specific sessions.
+ * Preserves cross-role provenance, participant contributions, and unresolved conflicts.
+ */
 export const CampaignProposalSchema = z.object({
   id: z.string().min(1),
   meetingId: z.string().min(1),
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).optional(),
+  sessionIds: z.array(z.string().min(1)).default([]),
+  participantContributions: z.array(ParticipantContributionSchema).default([]),
+  unresolvedConflicts: z.array(z.string().min(1)).default([]),
+
   executiveSummary: z.string().min(1),
   clientContext: z.string().min(1),
   campaignObjectives: z.array(z.string().min(1)).min(1),
@@ -70,6 +88,7 @@ export const CampaignProposalSchema = z.object({
 export const GenerateProposalRequestSchema = z.object({
   selectedConceptId: z.string().min(1).optional(),
   additionalNotes: z.string().optional(),
+  sessionIds: z.array(z.string().min(1)).optional(),
 });
 
 export type CreativeDirection = z.infer<typeof CreativeDirectionSchema>;
@@ -79,6 +98,9 @@ export type BudgetBreakdownItem = z.infer<typeof BudgetBreakdownItemSchema>;
 export type ProposalRiskItem = z.infer<typeof ProposalRiskItemSchema>;
 export type ProposalSourceReference = z.infer<
   typeof ProposalSourceReferenceSchema
+>;
+export type ParticipantContribution = z.infer<
+  typeof ParticipantContributionSchema
 >;
 export type CampaignProposal = z.infer<typeof CampaignProposalSchema>;
 export type GenerateProposalRequest = z.infer<

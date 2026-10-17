@@ -93,7 +93,8 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
     );
   }
 
-  const activeRoleTitle = activeEmployee?.role ?? meeting.participantRole;
+  const activeRoleTitle =
+    activeEmployee?.role ?? meeting.participantRole ?? "Participant";
   const activeParticipantName = activeEmployee?.name ?? activeRoleTitle;
   const roleProfile = getRolePreparationProfile(activeRoleTitle, meeting);
   const readyDocuments = documents.filter(

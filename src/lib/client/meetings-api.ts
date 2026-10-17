@@ -6,13 +6,16 @@ import {
 } from "@/contracts/error";
 import {
   CreateMeetingRequestSchema,
+  FinalizeMeetingRequestSchema,
   MeetingSchema,
   type CreateMeetingRequest,
+  type FinalizeMeetingRequest,
   type Meeting,
 } from "@/contracts/meeting";
 import {
   isMockModeEnabled,
   mockCreateMeeting,
+  mockFinalizeMeeting,
   mockGetMeetingById,
   mockListMeetings,
 } from "./mock-meetings";
@@ -61,7 +64,7 @@ async function parseErrorResponse(response: Response): Promise<WopsApiClientErro
       });
     }
   } catch {
-    // Response was not valid JSON (e.g., Next.js default 404 HTML when route is not yet implemented)
+    // Response was not valid JSON
   }
 
   if (response.status === 404) {
@@ -82,7 +85,6 @@ async function parseErrorResponse(response: Response): Promise<WopsApiClientErro
 /**
  * GET /api/meetings
  * Returns all meetings ordered by schedule/creation time.
- * Never silently falls back to mock data if a live API call fails.
  */
 export async function listMeetings(): Promise<Meeting[]> {
   if (isMockModeEnabled()) {
@@ -130,8 +132,7 @@ export async function listMeetings(): Promise<Meeting[]> {
 
 /**
  * POST /api/meetings
- * Validates payload with CreateMeetingRequestSchema and creates a new meeting.
- * Never silently falls back to mock data if a live API call fails.
+ * Contract V2: Creates a minimal meeting draft.
  */
 export async function createMeeting(
   input: CreateMeetingRequest
@@ -197,8 +198,6 @@ export async function createMeeting(
 
 /**
  * GET /api/meetings/{meetingId}
- * Fetches a single meeting by ID and validates with MeetingSchema.
- * Never silently falls back to mock data if a live API call fails.
  */
 export async function getMeetingById(meetingId: string): Promise<Meeting> {
   const trimmedId = meetingId.trim();
@@ -252,6 +251,74 @@ export async function getMeetingById(meetingId: string): Promise<Meeting> {
   if (!parsed.success) {
     throw new WopsApiClientError({
       message: `Invalid response schema from GET /api/meetings/${trimmedId}`,
+      status: response.status,
+      code: "SCHEMA_ERROR",
+      details: parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  return parsed.data.meeting;
+}
+
+/**
+ * POST /api/meetings/{meetingId}/finalize
+ * Contract V2: Finalizes meeting setup and marks it ready for employee preparation.
+ */
+export async function finalizeMeeting(
+  meetingId: string,
+  input?: FinalizeMeetingRequest
+): Promise<Meeting> {
+  const trimmedId = meetingId.trim();
+  if (!trimmedId) {
+    throw new WopsApiClientError({
+      message: "Meeting ID is required to finalize setup",
+      status: 400,
+      code: "BAD_REQUEST",
+    });
+  }
+
+  const payload = input ? FinalizeMeetingRequestSchema.parse(input) : {};
+
+  if (isMockModeEnabled()) {
+    return mockFinalizeMeeting(trimmedId, payload);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/meetings/${encodeURIComponent(trimmedId)}/finalize`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+  } catch (err) {
+    throw new WopsApiClientError({
+      message:
+        err instanceof Error
+          ? `Network error while finalizing /api/meetings/${trimmedId}: ${err.message}`
+          : `Network error while finalizing /api/meetings/${trimmedId}`,
+      status: 0,
+      code: "NETWORK_ERROR",
+    });
+  }
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = SingleMeetingResponseSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new WopsApiClientError({
+      message: `Invalid response schema from POST /api/meetings/${trimmedId}/finalize`,
       status: response.status,
       code: "SCHEMA_ERROR",
       details: parsed.error.issues.map((issue) => ({

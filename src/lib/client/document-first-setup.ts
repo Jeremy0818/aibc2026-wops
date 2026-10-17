@@ -16,8 +16,8 @@ export const SUPPORTED_UPLOAD_FORMATS = [
 ] as const;
 
 /**
- * Target product formats that are NOT supported yet. Listed so the UI can be
- * honest about them; files of these types are rejected, never renamed/converted.
+ * Target product formats that are planned for future backend support.
+ * Files of these types are rejected with a clear message and never renamed or converted.
  */
 export const PLANNED_UPLOAD_FORMATS = [
   {
@@ -89,7 +89,7 @@ export interface QueuedFile {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                   Draft creation vs. the current contract                  */
+/*                   Draft creation (Contract V2)                             */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -105,53 +105,16 @@ export interface TeamLeadDraftInput {
   participants: MeetingParticipant[];
 }
 
-/**
- * Client-brief fields that belong to the uploaded documents in the
- * document-first product model. The frontend never asks the Team Lead to type
- * these and never fabricates values for them.
- */
-export const DOCUMENT_DERIVED_FIELDS = [
-  "clientObjective",
-  "targetAudience",
-  "budgetCeilingIdr",
-  "clientRequirements",
-  "constraints",
-] as const;
-
-export type DocumentDerivedField = (typeof DOCUMENT_DERIVED_FIELDS)[number];
-
-export const DOCUMENT_DERIVED_FIELD_LABELS: Record<DocumentDerivedField, string> =
-  {
-    clientObjective: "Client objective",
-    targetAudience: "Target audience",
-    budgetCeilingIdr: "Budget ceiling (IDR)",
-    clientRequirements: "Client requirements",
-    constraints: "Constraints",
-  };
-
 export type DraftContractCheck =
   | { ok: true; request: CreateMeetingRequest }
   | {
       ok: false;
-      /** Team Lead fields that need fixing (shown inline on the form). */
       fieldErrors: Record<string, string>;
-      /** Document-derived fields the current contract still requires. */
-      contractBlockers: DocumentDerivedField[];
     };
 
-function isDocumentDerivedField(key: string): key is DocumentDerivedField {
-  return (DOCUMENT_DERIVED_FIELDS as readonly string[]).includes(key);
-}
-
 /**
- * Builds a draft request from Team Lead inputs ONLY and validates it against
- * the real shared `CreateMeetingRequestSchema`.
- *
- * - `participantRole` is taken from the first assigned employee's role (a real
- *   Team Lead assignment, not a placeholder).
- * - Document-derived fields are omitted entirely. If the contract still
- *   requires them, they are reported as `contractBlockers`. Once Developer B
- *   relaxes the schema, this check passes without any frontend change.
+ * Builds a minimal draft request from Team Lead inputs and validates it against
+ * Contract V2 CreateMeetingRequestSchema.
  */
 export function checkDraftAgainstContract(
   input: TeamLeadDraftInput
@@ -163,7 +126,7 @@ export function checkDraftAgainstContract(
     scheduledAt: input.scheduledAt,
     meetingObjective: input.meetingObjective.trim(),
     leadRole: input.leadRole.trim(),
-    participantRole: input.participants[0]?.role.trim() ?? "",
+    participantRole: input.participants[0]?.role.trim() || undefined,
     participants: input.participants,
   };
 
@@ -173,16 +136,11 @@ export function checkDraftAgainstContract(
   }
 
   const fieldErrors: Record<string, string> = {};
-  const blockers = new Set<DocumentDerivedField>();
 
   for (const issue of result.error.issues) {
     const rootKey = String(issue.path[0] ?? "form");
-    if (isDocumentDerivedField(rootKey)) {
-      blockers.add(rootKey);
-      continue;
-    }
     const pathKey = issue.path.join(".") || "form";
-    if (rootKey === "participantRole") {
+    if (rootKey === "participants") {
       fieldErrors.participants ??=
         "Assign at least one employee with a role so WOPS! knows who is preparing.";
       continue;
@@ -198,6 +156,5 @@ export function checkDraftAgainstContract(
   return {
     ok: false,
     fieldErrors,
-    contractBlockers: DOCUMENT_DERIVED_FIELDS.filter((f) => blockers.has(f)),
   };
 }

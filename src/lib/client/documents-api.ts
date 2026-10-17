@@ -1,17 +1,22 @@
 import { z } from "zod";
 import {
+  DocumentFactSchema,
   DocumentMetadataSchema,
   DocumentTypeSchema,
   MeetingContextResponseSchema,
+  UpdateDocumentFactRequestSchema,
+  type DocumentFact,
   type DocumentMetadata,
   type DocumentType,
   type MeetingContextResponse,
+  type UpdateDocumentFactRequest,
 } from "@/contracts/document";
 import { ApiErrorSchema } from "@/contracts/error";
 import { WopsApiClientError } from "./meetings-api";
 import {
   isMockModeEnabled,
   mockGetMeetingContext,
+  mockUpdateDocumentFact,
   mockUploadMeetingDocument,
 } from "./mock-meetings";
 
@@ -19,6 +24,10 @@ export const MAX_PDF_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB limit
 
 const UploadDocumentResponseSchema = z.object({
   document: DocumentMetadataSchema,
+});
+
+const UpdateFactResponseSchema = z.object({
+  fact: DocumentFactSchema,
 });
 
 export function validatePdfFile(
@@ -67,7 +76,7 @@ async function parseErrorResponse(
       });
     }
   } catch {
-    // Non-JSON response (e.g., Next.js default 404 when route handler is not yet implemented)
+    // Non-JSON response
   }
 
   if (response.status === 404) {
@@ -89,8 +98,7 @@ async function parseErrorResponse(
 
 /**
  * POST /api/meetings/{meetingId}/documents
- * Uploads a client PDF brief via multipart/form-data without manually setting Content-Type boundary.
- * Never silently falls back to mock data when Live API mode is active.
+ * Uploads a client PDF brief via multipart/form-data.
  */
 export async function uploadMeetingDocument(
   meetingId: string,
@@ -157,7 +165,6 @@ export async function uploadMeetingDocument(
 
   let response: Response;
   try {
-    // Note: Do NOT manually set Content-Type header for FormData so the browser includes the multipart boundary.
     response = await fetch(
       `/api/meetings/${encodeURIComponent(trimmedMeetingId)}/documents`,
       {
@@ -201,9 +208,78 @@ export async function uploadMeetingDocument(
 }
 
 /**
+ * PATCH /api/meetings/{meetingId}/facts/{factId}
+ * Contract V2: Corrects or confirms an extracted fact during review.
+ */
+export async function updateDocumentFact(
+  meetingId: string,
+  factId: string,
+  input: UpdateDocumentFactRequest
+): Promise<DocumentFact> {
+  const trimmedMeetingId = meetingId.trim();
+  const trimmedFactId = factId.trim();
+  if (!trimmedMeetingId || !trimmedFactId) {
+    throw new WopsApiClientError({
+      message: "Meeting ID and Fact ID are required to update a fact.",
+      status: 400,
+      code: "BAD_REQUEST",
+    });
+  }
+
+  const payload = UpdateDocumentFactRequestSchema.parse(input);
+
+  if (isMockModeEnabled()) {
+    return mockUpdateDocumentFact(trimmedMeetingId, trimmedFactId, payload);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/meetings/${encodeURIComponent(trimmedMeetingId)}/facts/${encodeURIComponent(trimmedFactId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+  } catch (err) {
+    throw new WopsApiClientError({
+      message:
+        err instanceof Error
+          ? `Network error while updating fact: ${err.message}`
+          : "Network error while updating fact",
+      status: 0,
+      code: "NETWORK_ERROR",
+    });
+  }
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = UpdateFactResponseSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new WopsApiClientError({
+      message: `Invalid response schema from PATCH /api/meetings/${trimmedMeetingId}/facts/${trimmedFactId}`,
+      status: response.status,
+      code: "SCHEMA_ERROR",
+      details: parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  return parsed.data.fact;
+}
+
+/**
  * GET /api/meetings/{meetingId}/context
  * Fetches combined meeting specification, uploaded document metadata, synthesized brief, and keyFacts.
- * Never silently falls back to mock data when Live API mode is active.
  */
 export async function getMeetingContext(
   meetingId: string

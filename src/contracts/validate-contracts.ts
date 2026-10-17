@@ -147,6 +147,8 @@ export function validateSampleContracts(): void {
   const session: PreparationSession = PreparationSessionSchema.parse({
     id: "ses_kova_001",
     meetingId: meeting.id,
+    participantId: "usr_planner_01",
+    participantRole: "Creative Campaign Planner",
     currentStage: "ALIGN",
     stageHistory: [
       {
@@ -217,7 +219,7 @@ export function validateSampleContracts(): void {
       "Drive commuter trial in Jakarta and Surabaya",
       "Build low-sugar taste credibility without health claims",
     ],
-    targetAudience: meeting.targetAudience,
+    targetAudience: meeting.targetAudience ?? "Indonesian urban commuters",
     creativeDirections: [selectedDirection],
     selectedDirection,
     keyMessages: ["Real coffee character, lighter sugar"],
@@ -282,7 +284,10 @@ export function validateSampleContracts(): void {
     updatedAt: "2026-10-17T15:25:00.000Z",
   });
 
-  if (proposal.totalBudgetIdr > meeting.budgetCeilingIdr) {
+  if (
+    meeting.budgetCeilingIdr !== undefined &&
+    proposal.totalBudgetIdr > meeting.budgetCeilingIdr
+  ) {
     throw new Error("Proposal totalBudgetIdr exceeds meeting budgetCeilingIdr");
   }
 
