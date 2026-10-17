@@ -30,8 +30,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (exclude secrets, allow .env.example template)
 .env*
+!.env.example
+
+# credentials & secrets
+*credentials*.json
+*service-account*.json
+*.key
+.gcloud/
 
 # vercel
 .vercel
