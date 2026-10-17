@@ -1,0 +1,194 @@
+rules_version = '2';
+
+// ===============================================================
+// WOPS! (Work Out Problems Swiftly) — Firestore Security Rules
+// ===============================================================
+//
+// Architectural Security Model (Server-Only Firebase Admin Access):
+// - All Firestore reads and writes in WOPS! occur strictly on the
+//   Next.js server via the Firebase Admin SDK (`src/lib/server/store.ts`),
+//   which authenticates using privileged service credentials and
+//   bypasses Firestore Security Rules.
+// - Browser clients NEVER access Cloud Firestore directly via the
+//   Firebase Client SDK; all client interactions go through validated
+//   Next.js Route Handlers (`/api/**`).
+// - Consequently, direct client SDK access is explicitly denied
+//   (`allow read, write: if false;`) across all application collections
+//   and enforced by a root default-deny catch-all rule.
+//
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures
+// (enforced at runtime via Zod schemas in `src/contracts/**`):
+//
+// Collection: meetings
+// Document ID: {meetingId} (e.g., "mtg_...")
+// Fields:
+//   - id: string (required, immutable, 1..128 chars) - unique meeting identifier
+//   - title: string (required, 1..300 chars) - meeting title
+//   - clientName: string (required, 1..200 chars) - client organization name
+//   - projectName: string (required, 1..200 chars) - project or campaign name
+//   - scheduledAt: string (required, ISO 8601 datetime) - scheduled meeting timestamp
+//   - meetingObjective: string (required, 1..2000 chars) - internal meeting objective
+//   - clientObjective: string (required, 1..2000 chars) - client business objective
+//   - clientRequirements: list<string> (required, max 50 items) - client deliverables/requirements
+//   - targetAudience: string (required, 1..1000 chars) - target audience description
+//   - constraints: list<string> (required, max 50 items) - project constraints
+//   - budgetCeilingIdr: int (required, >= 0) - maximum budget ceiling in IDR
+//   - participantRole: string (required, 1..200 chars) - role of the active participant
+//   - leadRole: string (required, 1..200 chars) - role of the meeting lead
+//   - participants: list<map> (required, max 50 items) - participant objects { id?, name, role, email? }
+//   - status: string (required, enum: 'draft' | 'ready' | 'in_session' | 'completed') - lifecycle status
+//   - documentIds: list<string> (required, max 100 items) - linked document IDs
+//   - createdAt: string (required, immutable, ISO 8601 datetime) - creation timestamp
+//   - updatedAt: string (required, ISO 8601 datetime) - last update timestamp
+//
+// Collection: documents
+// Document ID: {documentId} (e.g., "doc_...")
+// Fields:
+//   - id: string (required, immutable, 1..128 chars) - unique document identifier
+//   - meetingId: string (required, immutable, 1..128 chars) - parent meeting ID
+//   - name: string (required, 1..255 chars) - file name
+//   - mimeType: string (required, 1..128 chars) - MIME type
+//   - sizeBytes: int (optional, >= 0) - file size in bytes
+//   - type: string (required, enum: 'pdf' | 'brief' | 'notes' | 'other') - document category
+//   - processingStatus: string (required, enum: 'pending' | 'processing' | 'ready' | 'failed')
+//   - storageUri: string (optional, 1..1024 chars) - Cloud Storage gs:// URI
+//   - summary: string (optional, 1..10000 chars) - extracted document summary
+//   - extractedFacts: list<map> (required, max 200 items) - grounded facts { id, statement, pageOrSection? }
+//   - errorMessage: string (optional, 1..2000 chars) - error details if processing failed
+//   - uploadedAt: string (required, immutable, ISO 8601 datetime) - upload timestamp
+//   - processedAt: string (optional, ISO 8601 datetime) - processing completion timestamp
+//
+// Collection: sessions
+// Document ID: {sessionId} (e.g., "ses_...")
+// Fields:
+//   - id: string (required, immutable, 1..128 chars) - unique preparation session ID
+//   - meetingId: string (required, immutable, 1..128 chars) - associated meeting ID
+//   - currentStage: string (required, enum: 'UNDERSTAND' | 'EXPLORE' | 'EVALUATE' | 'ALIGN')
+//   - stageHistory: list<map> (required, max 50 items) - stage transitions
+//   - transcripts: list<map> (required, max 2000 items) - voice/chat transcript events
+//   - confirmedDecisions: list<map> (required, max 200 items) - grounded decisions recorded
+//   - openQuestions: list<string> (required, max 200 items) - unresolved questions
+//   - selectedConceptId: string | null (optional, 1..128 chars) - chosen creative concept ID
+//   - status: string (required, enum: 'ringing' | 'active' | 'paused' | 'completed' | 'abandoned')
+//   - startedAt: string (required, immutable, ISO 8601 datetime) - session start timestamp
+//   - updatedAt: string (required, ISO 8601 datetime) - last update timestamp
+//   - endedAt: string (optional, ISO 8601 datetime) - session completion timestamp
+//
+// Collection: proposals
+// Document ID: {proposalId} (e.g., "prp_...")
+// Fields:
+//   - id: string (required, immutable, 1..128 chars) - unique proposal identifier
+//   - meetingId: string (required, immutable, 1..128 chars) - associated meeting ID
+//   - sessionId: string (required, immutable, 1..128 chars) - source preparation session ID
+//   - executiveSummary: string (required, 1..10000 chars) - executive summary
+//   - clientContext: string (required, 1..10000 chars) - synthesized client context
+//   - campaignObjectives: list<string> (required, 1..50 items) - campaign objectives
+//   - targetAudience: string (required, 1..2000 chars) - target audience insight
+//   - creativeDirections: list<map> (required, 1..20 items) - explored creative directions
+//   - selectedDirection: map (required) - recommended/selected creative direction
+//   - keyMessages: list<string> (required, 1..50 items) - core campaign messages
+//   - activationIdeas: list<string> (required, max 50 items) - activation concepts
+//   - channelStrategy: list<map> (required, max 30 items) - channel roles and tactics
+//   - creatorStrategy: string (required, 1..5000 chars) - creator/KOL approach
+//   - sixWeekTimeline: list<map> (required, exactly 6 items) - 6-week execution plan
+//   - budgetBreakdown: list<map> (required, 1..50 items) - IDR budget allocation items
+//   - totalBudgetIdr: int (required, >= 0) - total proposed budget in IDR
+//   - kpis: list<string> (required, 1..50 items) - measurable KPIs
+//   - risks: list<map> (required, max 50 items) - risk and mitigation pairs
+//   - sourceReferences: list<map> (required, 1..200 items) - grounding citations
+//   - nextSteps: list<string> (required, 1..50 items) - actionable next steps
+//   - createdAt: string (required, immutable, ISO 8601 datetime) - creation timestamp
+//   - updatedAt: string (required, ISO 8601 datetime) - last update timestamp
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions (Defense-in-Depth Reference Library)
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isValidList(list, maxSize) {
+      return list is list && list.size() <= maxSize;
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Collection Rules (Server-Only Access via Firebase Admin SDK)
+    // ===============================================================
+
+    // Meetings collection: managed exclusively by Next.js server (`src/lib/server/store.ts`)
+    match /meetings/{meetingId} {
+      allow read, write: if false;
+    }
+
+    // Documents metadata collection: managed exclusively by Next.js server (`src/lib/server/store.ts`)
+    match /documents/{documentId} {
+      allow read, write: if false;
+    }
+
+    // Preparation sessions collection: managed exclusively by Next.js server (`src/lib/server/store.ts`)
+    match /sessions/{sessionId} {
+      allow read, write: if false;
+    }
+
+    // Campaign proposals collection: managed exclusively by Next.js server (`src/lib/server/store.ts`)
+    match /proposals/{proposalId} {
+      allow read, write: if false;
+    }
+
+    // Default deny catch-all for any other collections or subcollections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

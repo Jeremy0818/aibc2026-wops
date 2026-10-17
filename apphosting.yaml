@@ -1,0 +1,32 @@
+# Firebase App Hosting configuration for WOPS! (Next.js App Router)
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+
+env:
+  - variable: GEMINI_LIVE_MODEL
+    value: gemini-2.0-flash-live-001
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: GEMINI_TEXT_MODEL
+    value: gemini-2.5-flash
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: FIRESTORE_DATABASE_ID
+    value: "(default)"
+    availability:
+      - RUNTIME
+  - variable: GCP_REGION
+    value: asia-southeast2
+    availability:
+      - RUNTIME
+  # Uncomment after running: npx -y firebase-tools@latest apphosting:secrets:set GEMINI_API_KEY
+  # - variable: GEMINI_API_KEY
+  #   secret: GEMINI_API_KEY
+  #   availability:
+  #     - RUNTIME

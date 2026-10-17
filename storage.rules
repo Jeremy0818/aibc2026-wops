@@ -1,0 +1,9 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // All document uploads and reads are mediated by the Next.js server via Firebase Admin SDK.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
