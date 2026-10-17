@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Meeting } from "@/contracts/meeting";
 import { formatDateTime, formatIdr } from "@/lib/client/formatters";
+import { getAssignedEmployeesForMeeting } from "@/lib/client/role-preparation";
 import { MeetingStatusBadge } from "@/components/ui/state-views";
 
 export function MeetingCard({
@@ -12,10 +13,10 @@ export function MeetingCard({
 }) {
   const isKovaDemo = meeting.id === "mtg_kova_001" && isMockMode;
   const isReady = meeting.status === "ready";
+  const assignedEmployees = getAssignedEmployeesForMeeting(meeting);
 
   return (
     <article className="wops-warm-card group relative overflow-hidden rounded-3xl p-5 transition duration-200 hover:border-[#dcd4c6] sm:p-6">
-      {/* Subtle left accent bar for ready meetings (inspired by Reference 3) */}
       <span
         aria-hidden="true"
         className={`absolute inset-y-4 left-0 w-1 rounded-r-full transition ${
@@ -27,7 +28,7 @@ export function MeetingCard({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
-          {/* Top badges & date */}
+          {/* Top badges & client */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-[#5c5852]">
             <MeetingStatusBadge status={meeting.status} />
             <span className="font-medium text-[#1f1e1c]">
@@ -73,22 +74,30 @@ export function MeetingCard({
               ·
             </span>
             <span>
-              {meeting.participants.length > 0
-                ? `${meeting.participants.length} ${
-                    meeting.participants.length === 1 ? "person" : "people"
-                  }`
-                : `${meeting.participantRole}`}
+              {assignedEmployees.length}{" "}
+              {assignedEmployees.length === 1 ? "role" : "roles"} assigned
             </span>
+            {meeting.documentIds.length > 0 ? (
+              <>
+                <span aria-hidden="true" className="text-[#dcd4c6]">
+                  ·
+                </span>
+                <span className="font-medium text-[#1f1e1c]">
+                  {meeting.documentIds.length} shared PDF
+                  {meeting.documentIds.length === 1 ? "" : "s"}
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
 
         {/* Right action pill */}
         <div className="flex shrink-0 items-center justify-between border-t border-[#ebe6dd] pt-3 sm:border-t-0 sm:pt-0">
           <span className="text-xs text-[#8a847c] sm:hidden">
-            For {meeting.participantRole}
+            Lead: {meeting.leadRole}
           </span>
           <span className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-[#ebe6dd] bg-[#faf9f6] px-4 py-1.5 text-xs font-medium text-[#1f1e1c] transition group-hover:border-[#f5d5c8] group-hover:bg-[#fdf1ec] group-hover:text-[#b44322]">
-            <span>Open brief</span>
+            <span>Meeting details</span>
             <span
               aria-hidden="true"
               className="transition group-hover:translate-x-0.5"

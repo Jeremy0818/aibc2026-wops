@@ -47,8 +47,8 @@ const DESTINATIONS = [
   },
   {
     label: "Prepare",
-    href: "/meetings/new",
-    matchExact: true,
+    href: "/prepare",
+    matchExact: false,
     icon: (
       <svg
         aria-hidden="true"
@@ -58,7 +58,16 @@ const DESTINATIONS = [
         strokeWidth="1.75"
         className="h-4 w-4"
       >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10 4.5v11M4.5 10h11" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M10 3.5a3 3 0 00-3 3v3a3 3 0 006 0v-3a3 3 0 00-3-3z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M5.5 9.5a4.5 4.5 0 009 0M10 14v2.5M7.5 16.5h5"
+        />
       </svg>
     ),
   },
@@ -70,8 +79,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
 
   const isNavActive = (href: string, matchExact: boolean) => {
     if (matchExact) return pathname === href;
-    if (href === "/meetings" && pathname === "/meetings/new") return false;
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (

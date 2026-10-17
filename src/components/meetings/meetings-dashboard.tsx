@@ -9,22 +9,20 @@ import {
 } from "@/components/ui/state-views";
 import { MeetingCard } from "./meeting-card";
 
-const THINKING_STEPS = [
+const WORKFLOW_ROLES = [
   {
-    name: "Understand",
-    hint: "Ground in the brief & guardrails",
+    role: "Team Lead — Meeting Setup",
+    summary:
+      "Create the meeting once, upload the shared client PDF brief, and assign employee roles.",
+    actionLabel: "Create Meeting →",
+    href: "/meetings/new",
   },
   {
-    name: "Explore",
-    hint: "Spark fresh creative angles",
-  },
-  {
-    name: "Evaluate",
-    hint: "Check fit, audience & budget",
-  },
-  {
-    name: "Align",
-    hint: "Shape a clear proposal",
+    role: "Employee — Role-Aware Preparation",
+    summary:
+      "Review the shared brief facts and prepare your role-specific recommendations with WOPS!.",
+    actionLabel: "My Preparations →",
+    href: "/prepare",
   },
 ] as const;
 
@@ -45,7 +43,7 @@ export function MeetingsDashboard({
 
   return (
     <div className="space-y-8">
-      {/* Conversational Assistant Hero (Home) vs Compact Header (/meetings) */}
+      {/* Assistant-First Home (/) vs Meetings Directory (/meetings) */}
       {!compactHeader ? (
         <section className="wops-warm-card relative overflow-hidden rounded-3xl px-5 py-7 sm:px-8 sm:py-9">
           <div className="mx-auto flex max-w-xl flex-col items-center text-center">
@@ -65,67 +63,74 @@ export function MeetingsDashboard({
             </h1>
 
             <p className="mt-2.5 max-w-md text-sm leading-relaxed text-[#5c5852] sm:text-base">
-              Share your brief before the meeting starts. WOPS! calls your
-              planner to talk through ideas and turn decisions into a clear
-              proposal.
+              Team Leads set up the shared brief and client PDF once. Each
+              assigned teammate then prepares with WOPS! from their own role&apos;s
+              perspective before the meeting starts.
             </p>
 
+            {/* Contextually Accurate Actions: My Preparations (Employee) + Create Meeting (Team Lead) */}
             <div className="mt-6 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
               <Link
-                href="/meetings/new"
+                href="/prepare"
                 className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full bg-[#d95d39] px-6 py-3 text-sm font-medium text-white shadow-xs transition hover:bg-[#c34e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] sm:w-auto"
               >
-                <span>Prepare for a meeting</span>
+                <span>My Preparations</span>
                 <span aria-hidden="true">→</span>
+              </Link>
+
+              <Link
+                href="/meetings/new"
+                className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border border-[#ebe6dd] bg-white px-6 py-3 text-sm font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] sm:w-auto"
+              >
+                <span>+ Create Meeting</span>
               </Link>
             </div>
           </div>
 
-          {/* Calm 4-step conversational flow strip */}
+          {/* Clear Two-Journey Split: Team Lead Setup vs Employee Preparation */}
           <div className="mt-8 border-t border-[#ebe6dd] pt-5">
-            <p className="text-center text-xs font-medium text-[#8a847c]">
-              How a pre-meeting voice chat flows
-            </p>
-            <ol className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              {THINKING_STEPS.map((step, index) => (
-                <li
-                  key={step.name}
-                  className="rounded-2xl border border-[#ebe6dd]/80 bg-[#faf9f6] p-3 text-left"
+            <div className="grid gap-3 sm:grid-cols-2">
+              {WORKFLOW_ROLES.map((item) => (
+                <Link
+                  key={item.role}
+                  href={item.href}
+                  className="group rounded-2xl border border-[#ebe6dd]/90 bg-[#faf9f6] p-4 transition hover:border-[#f5d5c8] hover:bg-[#fdf1ec]/40"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#fdf1ec] text-[11px] font-semibold text-[#d95d39]">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs font-semibold text-[#1f1e1c]">
-                      {step.name}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-[#1f1e1c]">
+                      {item.role}
+                    </p>
+                    <span className="text-xs font-medium text-[#d95d39] transition group-hover:translate-x-0.5">
+                      {item.actionLabel}
                     </span>
                   </div>
-                  <p className="mt-1 text-[11px] leading-snug text-[#5c5852]">
-                    {step.hint}
+                  <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
+                    {item.summary}
                   </p>
-                </li>
+                </Link>
               ))}
-            </ol>
+            </div>
           </div>
         </section>
       ) : (
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-medium text-[#d95d39]">
-              Meeting briefs
+              Team Lead · Meeting Setup &amp; Directory
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#1f1e1c] sm:text-3xl">
-              Your upcoming sessions
+              Meetings
             </h1>
             <p className="mt-1 text-sm text-[#5c5852]">
-              Pick a meeting brief to review context or start preparing.
+              Create a meeting, upload the shared client PDF brief once, and
+              assign employee roles.
             </p>
           </div>
           <Link
             href="/meetings/new"
             className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 py-2.5 text-xs font-medium text-white transition hover:bg-[#c34e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
           >
-            <span>+ Prepare for a meeting</span>
+            <span>+ Create Meeting</span>
           </Link>
         </header>
       )}
@@ -143,8 +148,15 @@ export function MeetingsDashboard({
               <strong className="font-medium text-[#1f1e1c]">
                 KOVA demo data
               </strong>{" "}
-              (fictional Indonesian low-sugar coffee launch). Any meeting you
-              create here is saved locally in your browser.
+              (includes assigned{" "}
+              <strong className="font-medium text-[#1f1e1c]">
+                Creative Campaign Planner
+              </strong>{" "}
+              and{" "}
+              <strong className="font-medium text-[#1f1e1c]">
+                Senior Brand Designer
+              </strong>{" "}
+              roles).
             </p>
           </div>
           <button
@@ -168,20 +180,31 @@ export function MeetingsDashboard({
               id="upcoming-meetings-heading"
               className="text-base font-semibold tracking-tight text-[#1f1e1c] sm:text-lg"
             >
-              Upcoming meetings
+              Scheduled meetings
             </h2>
             <p className="text-xs text-[#5c5852]">
-              Open a brief to review what matters before the call.
+              Open a meeting to manage setup, attach the shared client PDF, or
+              review assigned roles.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            className="rounded-full border border-[#ebe6dd] bg-white px-3 py-1.5 text-xs font-medium text-[#5c5852] transition hover:border-[#dcd4c6] hover:text-[#1f1e1c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            {!compactHeader ? (
+              <Link
+                href="/meetings/new"
+                className="hidden rounded-full border border-[#ebe6dd] bg-white px-3 py-1.5 text-xs font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea] sm:inline-flex"
+              >
+                + Create Meeting
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="rounded-full border border-[#ebe6dd] bg-white px-3 py-1.5 text-xs font-medium text-[#5c5852] transition hover:border-[#dcd4c6] hover:text-[#1f1e1c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -198,15 +221,15 @@ export function MeetingsDashboard({
         ) : meetings.length === 0 ? (
           <EmptyState
             eyebrow="All clear"
-            title="No meetings queued up yet"
-            description="Set up a quick brief with your goal, audience, and budget ceiling—or switch on the KOVA demo to see how WOPS! works."
+            title="No meetings set up yet"
+            description="Team Leads can create a meeting brief with objectives, constraints, and assigned employee roles—or switch on the KOVA demo to explore."
             actions={
               <>
                 <Link
                   href="/meetings/new"
                   className="inline-flex min-h-[42px] w-full items-center justify-center rounded-full bg-[#d95d39] px-5 py-2.5 text-xs font-medium text-white transition hover:bg-[#c34e2c] sm:w-auto"
                 >
-                  Prepare for a meeting
+                  + Create Meeting
                 </Link>
                 {!mockMode ? (
                   <button
