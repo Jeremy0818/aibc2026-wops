@@ -72,7 +72,7 @@ const DESTINATIONS = [
     ),
   },
   {
-    label: "My Proposals",
+    label: "Proposals",
     href: "/proposals",
     matchExact: false,
     icon: (
@@ -187,7 +187,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         aria-label="Mobile navigation"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-[#ebe6dd] bg-white/95 px-3 py-1.5 backdrop-blur-md sm:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-3 gap-1">
+        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
           {DESTINATIONS.map((item) => {
             const active = isNavActive(item.href, item.matchExact);
             return (
