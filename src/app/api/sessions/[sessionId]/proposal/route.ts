@@ -62,7 +62,7 @@ export async function POST(
     const documents = await listDocumentsByMeetingId(meeting.id);
     const keyFacts = documents.flatMap((doc) => doc.extractedFacts);
 
-    const proposalId = `prop_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+    const proposalId = `prop_${session.id}_${crypto.randomUUID().replace(/-/g, "").slice(0, 6)}`;
 
     const proposal = await synthesizeCampaignProposal({
       proposalId,
@@ -73,20 +73,6 @@ export async function POST(
       selectedConceptId: parsed.selectedConceptId,
       additionalNotes: parsed.additionalNotes,
     });
-
-    if (proposal.totalBudgetIdr > meeting.budgetCeilingIdr) {
-      throw new WopsApiError(
-        "UNPROCESSABLE_ENTITY",
-        `Proposal totalBudgetIdr (${proposal.totalBudgetIdr}) exceeds meeting budgetCeilingIdr (${meeting.budgetCeilingIdr})`,
-        422,
-        [
-          {
-            field: "totalBudgetIdr",
-            message: `Must be <= ${meeting.budgetCeilingIdr}`,
-          },
-        ],
-      );
-    }
 
     const saved = await saveProposal(proposal);
     return NextResponse.json({ proposal: saved }, { status: 201 });

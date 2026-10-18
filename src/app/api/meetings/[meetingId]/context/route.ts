@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MeetingContextResponseSchema } from "@/contracts/document";
+import {
+  FactCategory,
+  MeetingContextResponseSchema,
+} from "@/contracts/document";
 import { handleRouteError, WopsApiError } from "@/lib/server/api-error";
 import {
   getMeetingById,
   listDocumentsByMeetingId,
 } from "@/lib/server/store";
+
+const STANDARD_CATEGORIES: FactCategory[] = [
+  "client_objective",
+  "requirement",
+  "target_audience",
+  "budget",
+  "constraint",
+  "deliverable",
+  "timeline",
+];
 
 export async function GET(
   _request: NextRequest,
@@ -22,22 +35,32 @@ export async function GET(
     }
 
     const documents = await listDocumentsByMeetingId(meetingId);
-    const keyFacts = documents.flatMap((doc) => doc.extractedFacts);
+    const readyDocs = documents.filter((d) => d.processingStatus === "ready");
+    const keyFacts = readyDocs.flatMap((doc) => doc.extractedFacts);
 
-    const docSummaries = documents
+    const docSummaries = readyDocs
       .map((doc) => doc.summary)
-      .filter((s): s is string => Boolean(s));
+      .filter((s): s is string => Boolean(s && s.trim()));
 
     const synthesizedBrief =
       docSummaries.length > 0
         ? docSummaries.join(" ")
-        : `${meeting.clientName} is preparing ${meeting.projectName} targeting ${meeting.targetAudience} with a budget ceiling of Rp${meeting.budgetCeilingIdr.toLocaleString("en-US")}.`;
+        : readyDocs.length > 0
+          ? `${meeting.clientName} (${meeting.projectName}) brief grounded with ${keyFacts.length} extracted fact(s).`
+          : undefined;
+
+    const presentCategories = new Set(keyFacts.map((f) => f.category));
+    const missingCategories = STANDARD_CATEGORIES.filter(
+      (cat) => !presentCategories.has(cat),
+    );
 
     const contextPayload = MeetingContextResponseSchema.parse({
       meeting,
       documents,
-      synthesizedBrief,
+      ...(synthesizedBrief ? { synthesizedBrief } : {}),
       keyFacts,
+      missingCategories,
+      contextVersion: meeting.contextVersion ?? 1,
     });
 
     return NextResponse.json(contextPayload, { status: 200 });

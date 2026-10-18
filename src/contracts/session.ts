@@ -52,9 +52,17 @@ export const DecisionEventSchema = z.object({
   timestamp: z.string().datetime(),
 });
 
+/**
+ * Contract V2: PreparationSessionSchema
+ * Represents a role-aware AI preparation session conducted by a specific participant
+ * for a shared meeting context.
+ */
 export const PreparationSessionSchema = z.object({
   id: z.string().min(1),
   meetingId: z.string().min(1),
+  participantId: z.string().min(1),
+  participantRole: z.string().min(1),
+  participantName: z.string().min(1).optional(),
   currentStage: SkillStageSchema.default("UNDERSTAND"),
   stageHistory: z.array(StageTransitionRecordSchema).default([]),
   transcripts: z.array(TranscriptEventSchema).default([]),
@@ -67,10 +75,15 @@ export const PreparationSessionSchema = z.object({
   endedAt: z.string().datetime().optional(),
 });
 
+/**
+ * Contract V2: CreateSessionRequestSchema
+ * Starts a role-aware preparation session for a designated participant.
+ */
 export const CreateSessionRequestSchema = z.object({
   meetingId: z.string().min(1),
-  participantName: z.string().min(1).optional(),
+  participantId: z.string().min(1),
   participantRole: z.string().min(1).optional(),
+  participantName: z.string().min(1).optional(),
 });
 
 export const AppendSessionEventRequestSchema = z.discriminatedUnion("type", [

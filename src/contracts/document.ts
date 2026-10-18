@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { MeetingSchema } from "./meeting";
 
-export const DocumentTypeSchema = z.enum(["pdf", "brief", "notes", "other"]);
+export const DocumentTypeSchema = z.enum([
+  "pdf",
+  "docx",
+  "pptx",
+  "brief",
+  "notes",
+  "other",
+]);
 
 export const DocumentProcessingStatusSchema = z.enum([
   "pending",
@@ -10,10 +17,36 @@ export const DocumentProcessingStatusSchema = z.enum([
   "failed",
 ]);
 
+export const FactCategorySchema = z.enum([
+  "client_objective",
+  "requirement",
+  "target_audience",
+  "budget",
+  "constraint",
+  "deliverable",
+  "timeline",
+  "other",
+]);
+
+export const FactProvenanceSchema = z.enum([
+  "extracted",
+  "confirmed",
+  "assumption",
+  "lead_added",
+]);
+
 export const DocumentFactSchema = z.object({
   id: z.string().min(1),
   statement: z.string().min(1),
+  category: FactCategorySchema.default("other"),
+  provenance: FactProvenanceSchema.default("extracted"),
   pageOrSection: z.string().optional(),
+  sourceDocumentId: z.string().min(1).optional(),
+  sourceDocumentName: z.string().min(1).optional(),
+  confirmedByLead: z.boolean().default(false),
+  addedByUserId: z.string().optional(),
+  addedByRole: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
 });
 
 export const DocumentMetadataSchema = z.object({
@@ -34,20 +67,46 @@ export const DocumentMetadataSchema = z.object({
 
 export const DocumentSchema = DocumentMetadataSchema;
 
+export const CreateDocumentFactRequestSchema = z.object({
+  statement: z.string().trim().min(1, "Statement is required"),
+  category: FactCategorySchema.default("other"),
+  provenance: z.literal("lead_added").default("lead_added"),
+  confirmedByLead: z.boolean().default(true),
+  addedByUserId: z.string().optional(),
+  addedByRole: z.string().optional(),
+});
+
+export const UpdateDocumentFactRequestSchema = z.object({
+  statement: z.string().min(1).optional(),
+  category: FactCategorySchema.optional(),
+  provenance: FactProvenanceSchema.optional(),
+  confirmedByLead: z.boolean().optional(),
+});
+
 export const MeetingContextResponseSchema = z.object({
   meeting: MeetingSchema,
   documents: z.array(DocumentMetadataSchema),
   synthesizedBrief: z.string().optional(),
   keyFacts: z.array(DocumentFactSchema).default([]),
+  missingCategories: z.array(FactCategorySchema).default([]),
+  contextVersion: z.number().int().positive().default(1),
 });
 
 export type DocumentType = z.infer<typeof DocumentTypeSchema>;
 export type DocumentProcessingStatus = z.infer<
   typeof DocumentProcessingStatusSchema
 >;
+export type FactCategory = z.infer<typeof FactCategorySchema>;
+export type FactProvenance = z.infer<typeof FactProvenanceSchema>;
 export type DocumentFact = z.infer<typeof DocumentFactSchema>;
 export type DocumentMetadata = z.infer<typeof DocumentMetadataSchema>;
 export type Document = z.infer<typeof DocumentSchema>;
+export type CreateDocumentFactRequest = z.infer<
+  typeof CreateDocumentFactRequestSchema
+>;
+export type UpdateDocumentFactRequest = z.infer<
+  typeof UpdateDocumentFactRequestSchema
+>;
 export type MeetingContextResponse = z.infer<
   typeof MeetingContextResponseSchema
 >;

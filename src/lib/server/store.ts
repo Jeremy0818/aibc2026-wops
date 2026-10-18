@@ -1,6 +1,10 @@
 import {
+  CreateDocumentFactRequest,
+  DocumentFact,
+  DocumentFactSchema,
   DocumentMetadata,
   DocumentMetadataSchema,
+  UpdateDocumentFactRequest,
 } from "@/contracts/document";
 import {
   CreateMeetingRequest,
@@ -8,8 +12,8 @@ import {
   MeetingSchema,
 } from "@/contracts/meeting";
 import {
-  CampaignProposal,
-  CampaignProposalSchema,
+  PreparationProposal,
+  PreparationProposalSchema,
 } from "@/contracts/proposal";
 import {
   PreparationSession,
@@ -32,7 +36,7 @@ interface InMemoryStore {
   meetings: Map<string, Meeting>;
   documents: Map<string, DocumentMetadata>;
   sessions: Map<string, PreparationSession>;
-  proposals: Map<string, CampaignProposal>;
+  proposals: Map<string, PreparationProposal>;
 }
 
 const globalForWopsStore = globalThis as unknown as {
@@ -50,7 +54,7 @@ function getMemoryStore(): InMemoryStore {
     const sessions = new Map<string, PreparationSession>([
       [SEED_KOVA_SESSION.id, structuredClone(SEED_KOVA_SESSION)],
     ]);
-    const proposals = new Map<string, CampaignProposal>([
+    const proposals = new Map<string, PreparationProposal>([
       [SEED_KOVA_PROPOSAL.id, structuredClone(SEED_KOVA_PROPOSAL)],
     ]);
     globalForWopsStore.__wopsStore = {
@@ -80,7 +84,6 @@ export async function listMeetings(): Promise<Meeting[]> {
         .get();
 
       if (snap.empty) {
-        // Seed initial KOVA demo meeting into Firestore on first access
         await db
           .collection(COLLECTIONS.meetings)
           .doc(SEED_KOVA_MEETING.id)
@@ -155,15 +158,22 @@ export async function createMeeting(
 
   const participants = input.participants.map((p, idx) => ({
     ...p,
-    id: p.id ?? `usr_${idx + 1}_${crypto.randomUUID().replace(/-/g, "").slice(0, 6)}`,
+    id:
+      p.id ??
+      `usr_${idx + 1}_${crypto.randomUUID().replace(/-/g, "").slice(0, 6)}`,
   }));
 
   const meeting: Meeting = MeetingSchema.parse({
     ...input,
     id,
     participants,
-    status: "ready",
+    status: "draft",
     documentIds: [],
+    clientRequirements: input.clientRequirements ?? [],
+    constraints: input.constraints ?? [],
+    participantRole:
+      input.participantRole ?? participants[0]?.role ?? "Participant",
+    contextVersion: 1,
     createdAt: now,
     updatedAt: now,
   });
@@ -311,6 +321,142 @@ export async function listDocumentsByMeetingId(
     .map((doc) => structuredClone(doc));
 }
 
+export async function createLeadDocumentFact(
+  meeting: Meeting,
+  input: CreateDocumentFactRequest,
+): Promise<DocumentFact> {
+  const now = new Date().toISOString();
+  const factId = `fact_lead_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+
+  const createdFact: DocumentFact = DocumentFactSchema.parse({
+    id: factId,
+    statement: input.statement,
+    category: input.category,
+    provenance: "lead_added",
+    confirmedByLead: true,
+    addedByUserId: input.addedByUserId ?? "usr_lead_01",
+    addedByRole: input.addedByRole ?? meeting.leadRole,
+    createdAt: now,
+  });
+
+  const docs = await listDocumentsByMeetingId(meeting.id);
+  let targetDoc = docs.find((d) => d.processingStatus === "ready");
+
+  if (!targetDoc) {
+    targetDoc = DocumentMetadataSchema.parse({
+      id: `doc_${meeting.id}_lead_additions`,
+      meetingId: meeting.id,
+      name: "Team Lead Meeting Brief Additions",
+      mimeType: "application/json",
+      type: "notes",
+      processingStatus: "ready",
+      summary: "Team Lead manual brief additions and verified requirements.",
+      extractedFacts: [createdFact],
+      uploadedAt: now,
+      processedAt: now,
+    });
+  } else {
+    targetDoc = {
+      ...targetDoc,
+      extractedFacts: [...targetDoc.extractedFacts, createdFact],
+    };
+  }
+
+  await saveDocumentMetadata(targetDoc);
+
+  let updatedBudget = meeting.budgetCeilingIdr;
+  let updatedObjective = meeting.clientObjective;
+  let updatedAudience = meeting.targetAudience;
+  const updatedRequirements = [...meeting.clientRequirements];
+  const updatedConstraints = [...meeting.constraints];
+
+  if (input.category === "budget") {
+    const digitsOnly = input.statement.replace(/[^\d]/g, "");
+    if (digitsOnly) {
+      const parsedAmount = Number.parseInt(digitsOnly, 10);
+      if (!Number.isNaN(parsedAmount) && parsedAmount > 0) {
+        updatedBudget = parsedAmount;
+      }
+    }
+  } else if (input.category === "client_objective") {
+    updatedObjective = input.statement;
+  } else if (input.category === "target_audience") {
+    updatedAudience = input.statement;
+  } else if (
+    input.category === "requirement" &&
+    !updatedRequirements.includes(input.statement)
+  ) {
+    updatedRequirements.push(input.statement);
+  } else if (
+    input.category === "constraint" &&
+    !updatedConstraints.includes(input.statement)
+  ) {
+    updatedConstraints.push(input.statement);
+  }
+
+  const nextDocIds = meeting.documentIds.includes(targetDoc.id)
+    ? meeting.documentIds
+    : [...meeting.documentIds, targetDoc.id];
+
+  await updateMeeting({
+    ...meeting,
+    documentIds: nextDocIds,
+    budgetCeilingIdr: updatedBudget,
+    clientObjective: updatedObjective,
+    targetAudience: updatedAudience,
+    clientRequirements: updatedRequirements,
+    constraints: updatedConstraints,
+    contextVersion: (meeting.contextVersion ?? 1) + 1,
+  });
+
+  return createdFact;
+}
+
+export async function updateMeetingDocumentFact(
+  meeting: Meeting,
+  factId: string,
+  input: UpdateDocumentFactRequest,
+): Promise<DocumentFact | null> {
+  const docs = await listDocumentsByMeetingId(meeting.id);
+
+  for (const doc of docs) {
+    const factIdx = doc.extractedFacts.findIndex((f) => f.id === factId);
+    if (factIdx !== -1) {
+      const existingFact = doc.extractedFacts[factIdx];
+      const updatedFact = DocumentFactSchema.parse({
+        ...existingFact,
+        ...(input.statement !== undefined
+          ? { statement: input.statement }
+          : {}),
+        ...(input.category !== undefined ? { category: input.category } : {}),
+        ...(input.provenance !== undefined
+          ? { provenance: input.provenance }
+          : {}),
+        ...(input.confirmedByLead !== undefined
+          ? { confirmedByLead: input.confirmedByLead }
+          : {}),
+      });
+
+      const nextFacts = [...doc.extractedFacts];
+      nextFacts[factIdx] = updatedFact;
+
+      await saveDocumentMetadata({
+        ...doc,
+        extractedFacts: nextFacts,
+      });
+
+      await updateMeeting({
+        ...meeting,
+        contextVersion: (meeting.contextVersion ?? 1) + 1,
+      });
+
+      return updatedFact;
+    }
+  }
+
+  return null;
+}
+
 export async function createPreparationSession(
   session: PreparationSession,
 ): Promise<PreparationSession> {
@@ -402,9 +548,9 @@ export async function saveSession(
 }
 
 export async function saveProposal(
-  proposal: CampaignProposal,
-): Promise<CampaignProposal> {
-  const validated = CampaignProposalSchema.parse(proposal);
+  proposal: PreparationProposal,
+): Promise<PreparationProposal> {
+  const validated = PreparationProposalSchema.parse(proposal);
 
   const db = getDb();
   if (db) {
@@ -429,16 +575,19 @@ export async function saveProposal(
 
 export async function getProposalById(
   proposalId: string,
-): Promise<CampaignProposal | null> {
+): Promise<PreparationProposal | null> {
+  const resolvedId =
+    proposalId === "prop_kova_001" ? SEED_KOVA_PROPOSAL.id : proposalId;
+
   const db = getDb();
   if (db) {
     try {
       const doc = await db
         .collection(COLLECTIONS.proposals)
-        .doc(proposalId)
+        .doc(resolvedId)
         .get();
       if (!doc.exists) {
-        if (proposalId === SEED_KOVA_PROPOSAL.id) {
+        if (resolvedId === SEED_KOVA_PROPOSAL.id) {
           await db
             .collection(COLLECTIONS.proposals)
             .doc(SEED_KOVA_PROPOSAL.id)
@@ -447,7 +596,7 @@ export async function getProposalById(
         }
         return null;
       }
-      return CampaignProposalSchema.parse(doc.data());
+      return PreparationProposalSchema.parse(doc.data());
     } catch (err) {
       throw new WopsApiError(
         "UPSTREAM_ERROR",
@@ -458,6 +607,56 @@ export async function getProposalById(
   }
 
   const store = getMemoryStore();
-  const proposal = store.proposals.get(proposalId);
+  const proposal = store.proposals.get(resolvedId);
   return proposal ? structuredClone(proposal) : null;
+}
+
+export async function listProposals(filters?: {
+  participantId?: string;
+  meetingId?: string;
+}): Promise<PreparationProposal[]> {
+  const db = getDb();
+  if (db) {
+    try {
+      const snap = await db.collection(COLLECTIONS.proposals).get();
+      if (snap.empty) {
+        await db
+          .collection(COLLECTIONS.proposals)
+          .doc(SEED_KOVA_PROPOSAL.id)
+          .set(SEED_KOVA_PROPOSAL);
+      }
+      const all = snap.empty
+        ? [SEED_KOVA_PROPOSAL]
+        : snap.docs.map((doc) => PreparationProposalSchema.parse(doc.data()));
+
+      return all.filter((p) => {
+        if (filters?.participantId && p.participantId !== filters.participantId) {
+          return false;
+        }
+        if (filters?.meetingId && p.meetingId !== filters.meetingId) {
+          return false;
+        }
+        return true;
+      });
+    } catch (err) {
+      throw new WopsApiError(
+        "UPSTREAM_ERROR",
+        `Firestore failed to list proposals: ${err instanceof Error ? err.message : String(err)}`,
+        502,
+      );
+    }
+  }
+
+  const store = getMemoryStore();
+  return Array.from(store.proposals.values())
+    .filter((p) => {
+      if (filters?.participantId && p.participantId !== filters.participantId) {
+        return false;
+      }
+      if (filters?.meetingId && p.meetingId !== filters.meetingId) {
+        return false;
+      }
+      return true;
+    })
+    .map((p) => structuredClone(p));
 }

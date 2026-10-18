@@ -1,13 +1,64 @@
-import { DocumentMetadata, DocumentMetadataSchema } from "@/contracts/document";
+import {
+  DocumentFact,
+  DocumentMetadata,
+  DocumentMetadataSchema,
+} from "@/contracts/document";
 import { Meeting, MeetingSchema } from "@/contracts/meeting";
 import {
-  CampaignProposal,
-  CampaignProposalSchema,
+  PreparationProposal,
+  PreparationProposalSchema,
 } from "@/contracts/proposal";
 import {
   PreparationSession,
   PreparationSessionSchema,
 } from "@/contracts/session";
+
+export const SEED_KOVA_FACTS: DocumentFact[] = [
+  {
+    id: "fact_01",
+    statement:
+      "KOVA Light contains 5g of cane sugar per 200ml can and uses a 100% Indonesian Arabica-Robusta blend.",
+    category: "requirement",
+    provenance: "extracted",
+    pageOrSection: "Page 2 — Product Specs",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+  {
+    id: "fact_02",
+    statement:
+      "Primary launch cities are Jakarta and Surabaya, focusing on MRT/commuter transit corridors and office districts.",
+    category: "target_audience",
+    provenance: "extracted",
+    pageOrSection: "Page 3 — Market & Distribution",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+  {
+    id: "fact_03",
+    statement:
+      "Consumer taste panels showed 78% of 20–32 commuters avoid 'diet' coffee labels because they expect a watery aftertaste.",
+    category: "constraint",
+    provenance: "extracted",
+    pageOrSection: "Page 4 — Audience Research",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+  {
+    id: "fact_04",
+    statement:
+      "All campaign copy, creator briefs, and visual callouts must strictly avoid medical, clinical, or weight-loss claims.",
+    category: "constraint",
+    provenance: "extracted",
+    pageOrSection: "Page 5 — Brand Guardrails",
+    sourceDocumentId: "doc_kova_brief_01",
+    sourceDocumentName: "KOVA-Brand-Brief-2026.pdf",
+    confirmedByLead: true,
+  },
+];
 
 export const SEED_KOVA_MEETING: Meeting = MeetingSchema.parse({
   id: "mtg_kova_001",
@@ -16,39 +67,49 @@ export const SEED_KOVA_MEETING: Meeting = MeetingSchema.parse({
   projectName: "KOVA Light — Low-Sugar RTD Coffee Launch",
   scheduledAt: "2026-10-20T03:00:00.000Z",
   meetingObjective:
-    "Align on a primary creative direction and 6-week launch plan prior to agency review",
-  clientObjective:
-    "Drive trial among urban young professionals in Jakarta and Surabaya without sacrificing coffee taste perception",
-  clientRequirements: [
-    "Highlight low-sugar positioning without making clinical or medical health claims",
-    "Include creator-led social activation and convenience store trial mechanics",
-  ],
-  targetAudience:
-    "Indonesian urban Gen Z and young millennial commuters (ages 20-32)",
-  constraints: [
-    "KOVA is a fictional brand for demo purposes",
-    "No unsupported health or medical claims",
-    "Budget ceiling of Rp250,000,000 (ceiling, not mandatory full spend)",
-  ],
-  budgetCeilingIdr: 250000000,
-  participantRole: "Creative Campaign Planner",
+    "Align on a primary creative direction, visual territory, and 6-week launch plan prior to agency review",
   leadRole: "Creative Team Lead",
   participants: [
     {
       id: "usr_lead_01",
       name: "Raka Pratama",
       role: "Creative Team Lead",
+      email: "raka.pratama@agency-demo.id",
     },
     {
       id: "usr_planner_01",
       name: "Nadia Kusuma",
       role: "Creative Campaign Planner",
+      email: "nadia.kusuma@agency-demo.id",
+    },
+    {
+      id: "usr_designer_01",
+      name: "Bima Wijaya",
+      role: "Senior Brand Designer",
+      email: "bima.wijaya@agency-demo.id",
     },
   ],
   status: "ready",
   documentIds: ["doc_kova_brief_01"],
+  clientObjective:
+    "Drive trial among urban young professionals in Jakarta and Surabaya without sacrificing coffee taste perception",
+  clientRequirements: [
+    "Highlight low-sugar positioning (5g cane sugar per 200ml can) without making clinical or medical health claims",
+    "Include creator-led social activation and commuter hub trial mechanics",
+    "Deliver a 6-week phased rollout schedule and cohesive visual asset system with clear KPIs",
+  ],
+  targetAudience:
+    "Indonesian urban Gen Z and young millennial commuters in Jakarta and Surabaya (ages 20-32)",
+  constraints: [
+    "KOVA is a fictional Indonesian ready-to-drink coffee brand for demo purposes",
+    "No unsupported medical, weight-loss, or clinical health claims",
+  ],
+  budgetCeilingIdr: 250000000,
+  participantRole: "Creative Campaign Planner",
+  contextVersion: 1,
   createdAt: "2026-10-17T15:00:00.000Z",
   updatedAt: "2026-10-17T15:10:00.000Z",
+  finalizedAt: "2026-10-17T15:10:00.000Z",
 });
 
 export const SEED_KOVA_DOCUMENT: DocumentMetadata =
@@ -62,33 +123,8 @@ export const SEED_KOVA_DOCUMENT: DocumentMetadata =
     processingStatus: "ready",
     storageUri: "gs://wops-documents/mtg_kova_001/doc_kova_brief_01.pdf",
     summary:
-      "Client brief for KOVA low-sugar RTD coffee launch targeting urban commuters in Jakarta and Surabaya with a Rp250,000,000 budget ceiling.",
-    extractedFacts: [
-      {
-        id: "fact_01",
-        statement:
-          "KOVA Light contains 5g of cane sugar per 200ml can and uses 100% Indonesian Arabica-Robusta blend.",
-        pageOrSection: "Page 2 — Product Specs",
-      },
-      {
-        id: "fact_02",
-        statement:
-          "Primary launch cities are Jakarta and Surabaya targeting urban commuters aged 20-32.",
-        pageOrSection: "Page 3 — Target Market",
-      },
-      {
-        id: "fact_03",
-        statement:
-          "Total campaign budget must not exceed Rp250,000,000 IDR across a 6-week launch window.",
-        pageOrSection: "Page 4 — Budget & Timeline",
-      },
-      {
-        id: "fact_04",
-        statement:
-          "Brand guidelines strictly prohibit clinical, medical, or weight-loss claims.",
-        pageOrSection: "Page 5 — Brand Mandatories",
-      },
-    ],
+      "Client brief for KOVA Light low-sugar RTD coffee launch targeting urban commuters in Jakarta and Surabaya (product specs, commuter research, brand guardrails).",
+    extractedFacts: SEED_KOVA_FACTS,
     uploadedAt: "2026-10-17T15:05:00.000Z",
     processedAt: "2026-10-17T15:05:04.000Z",
   });
@@ -97,6 +133,9 @@ export const SEED_KOVA_SESSION: PreparationSession =
   PreparationSessionSchema.parse({
     id: "ses_kova_001",
     meetingId: "mtg_kova_001",
+    participantId: "usr_planner_01",
+    participantRole: "Creative Campaign Planner",
+    participantName: "Nadia Kusuma",
     currentStage: "UNDERSTAND",
     stageHistory: [
       {
@@ -115,169 +154,115 @@ export const SEED_KOVA_SESSION: PreparationSession =
     updatedAt: "2026-10-17T15:15:00.000Z",
   });
 
-export const SEED_KOVA_PROPOSAL: CampaignProposal =
-  CampaignProposalSchema.parse({
-    id: "prop_kova_001",
+export const SEED_KOVA_PROPOSAL: PreparationProposal =
+  PreparationProposalSchema.parse({
+    id: "prop_kova_planner_001",
     meetingId: "mtg_kova_001",
+    participantId: "usr_planner_01",
+    participantRole: "Creative Campaign Planner",
+    participantName: "Nadia Kusuma",
     sessionId: "ses_kova_001",
-    executiveSummary:
-      "A 6-week launch campaign for KOVA Light centered on afternoon urban commuters in Jakarta and Surabaya.",
-    clientContext:
-      "KOVA (fictional Indonesian RTD coffee brand) is introducing a low-sugar coffee line with a Rp250,000,000 budget ceiling.",
-    campaignObjectives: [
-      "Generate awareness and product trial among 20-32 urban commuters",
-      "Establish KOVA Light as great-tasting low-sugar RTD coffee without clinical health claims",
+    title: "KOVA Light — Campaign Strategy & Channel Allocation",
+    summary:
+      "Strategic pre-meeting preparation exploring commuter transit corridors in Jakarta and Surabaya, taste-first positioning, and a Rp235M channel allocation under the Rp250M ceiling with a Rp15M contingency reserve.",
+    status: "completed",
+    keyIdeas: [
+      "Prioritize high-density urban transit corridors (Jakarta MRT/KRL and Surabaya transit) for 20-32 young commuters.",
+      "Adopt 'Real Taste, Lighter Pace' hook: lead with authentic Arabica-Robusta taste first, with low-sugar as the everyday lifestyle benefit.",
+      "Deploy a Rp235M channel split across creator seeding and commuter sampling, preserving a Rp15M contingency reserve under the ceiling.",
     ],
-    targetAudience:
-      "Indonesian urban Gen Z and young millennial commuters (ages 20-32)",
-    creativeDirections: [
+    directions: [
       {
         id: "dir_01",
-        title: "3 PM Tanpa Drama (3 PM Without the Crash)",
+        title: "3 PM Tanpa Drama (Real Taste, Lighter Pace)",
         tagline: "Kopi Beneran, Gula Ringan.",
-        conceptSummary:
-          "Own the 3 PM commuter and office slump moment with bold taste and lighter sugar.",
+        summary:
+          "Target the 3 PM commuter slump across Jabodetabek and Surabaya transit corridors with taste-first messaging.",
         rationale:
-          "Directly connects the 5g sugar product fact to a relatable daily ritual without medical claims.",
+          "Directly tackles the 78% watery-taste perception barrier from client research without resorting to medical or diet claims.",
         isRecommended: true,
       },
+    ],
+    recommendations: [
       {
-        id: "dir_02",
-        title: "Rute Fokus (The Commuter Focus Line)",
-        tagline: "Teman Perjalanan, Rasanya Pas.",
-        conceptSummary:
-          "Turn MRT, KRL, and TransJakarta transit corridors into interactive taste-discovery zones paired with creator commute diaries.",
+        id: "rec_01",
+        topic: "Channel Mix",
+        recommendation:
+          "Allocate Rp120M to TikTok creator seeding, Rp80M to commuter transit sampling, and Rp35M to paid social.",
         rationale:
-          "Captures urban Gen Z and young millennial commuters during their daily transit routine with high-visibility sampling.",
-        isRecommended: false,
+          "Balances wide viral reach with high-touch physical product trial where commuters gather daily.",
+        isParticipantConfirmed: true,
+      },
+      {
+        id: "rec_02",
+        topic: "Contingency Safety",
+        recommendation:
+          "Hold a Rp15M unallocated reserve under the Rp250M budget ceiling.",
+        rationale:
+          "Covers potential transit permit overtime fees or creator asset revisions without exceeding client brief ceiling.",
+        isParticipantConfirmed: true,
       },
     ],
-    selectedDirection: {
-      id: "dir_01",
-      title: "3 PM Tanpa Drama (3 PM Without the Crash)",
-      tagline: "Kopi Beneran, Gula Ringan.",
-      conceptSummary:
-        "Own the 3 PM commuter and office slump moment with bold taste and lighter sugar.",
-      rationale:
-        "Directly connects the 5g sugar product fact to a relatable daily ritual without medical claims.",
-      isRecommended: true,
-    },
-    keyMessages: [
-      "Real Indonesian coffee character with lighter sugar for your afternoon rhythm",
-      "Designed for daily commuters who want full flavor without heavy sweetness",
-    ],
-    activationIdeas: [
-      "3 PM Commuter Drop sampling booths near MRT Dukuh Atas and Blok M",
-      "Office Desk Rescue kits paired with micro-creator unboxings",
-    ],
-    channelStrategy: [
-      {
-        channel: "TikTok & Instagram Reels",
-        role: "Reach & Cultural Relatability",
-        tactics: ["3 PM POV creator skits", "Taste-test street interviews"],
-      },
-    ],
-    creatorStrategy:
-      "Partner with 15 mid-tier Jakarta/Surabaya lifestyle & commuter creators focusing on authentic taste reactions.",
-    sixWeekTimeline: [
-      {
-        weekNumber: 1,
-        phaseName: "Pre-Launch Teaser & Creator Seeding",
-        milestones: ["Finalize creator briefs", "Dispatch seeding kits"],
-        deliverables: ["15 creator seeding boxes", "Teaser short-form edits"],
-      },
-      {
-        weekNumber: 2,
-        phaseName: "Hero Launch & 3 PM Digital Takeover",
-        milestones: ["Launch hero reels"],
-        deliverables: ["Hero launch video", "Paid social flight 1"],
-      },
-      {
-        weekNumber: 3,
-        phaseName: "Commuter Sampling Activation — Jakarta",
-        milestones: ["MRT hub activation"],
-        deliverables: ["Sampling booth collateral"],
-      },
-      {
-        weekNumber: 4,
-        phaseName: "Creator Duets & Surabaya Expansion",
-        milestones: ["Surabaya coffee community pop-up"],
-        deliverables: ["Wave 2 creator content"],
-      },
-      {
-        weekNumber: 5,
-        phaseName: "Retail Trial Push",
-        milestones: ["Minimarket bundle promo"],
-        deliverables: ["POS callout assets"],
-      },
-      {
-        weekNumber: 6,
-        phaseName: "Retargeting & Campaign Wrap Review",
-        milestones: ["Performance synthesis"],
-        deliverables: ["Post-campaign learnings deck"],
-      },
-    ],
-    budgetBreakdown: [
-      {
-        category: "Creator Partnerships & Seeding",
-        amountIdr: 85000000,
-        notes: "15 mid-tier creators + seeding production",
-      },
-      {
-        category: "Commuter Sampling & Pop-Up Activations",
-        amountIdr: 75000000,
-        notes: "Jakarta & Surabaya commuter hubs",
-      },
-      {
-        category: "Paid Social Amplification",
-        amountIdr: 50000000,
-        notes: "TikTok & Meta targeted commuter dayparting",
-      },
-      {
-        category: "Content Production & Design",
-        amountIdr: 25000000,
-        notes: "Short-form video & POS assets",
-      },
-    ],
-    totalBudgetIdr: 235000000,
-    kpis: [
-      "12,000+ cans sampled across commuter hubs",
-      "2.5M+ organic & paid video views across Jakarta and Surabaya target demo",
-    ],
-    risks: [
-      {
-        risk: "Creators inadvertently improvising health or weight-loss claims",
-        mitigation:
-          "Strict creator do/don't script checklist prohibiting medical or clinical claims",
-      },
-    ],
-    sourceReferences: [
+    sharedFacts: [
       {
         id: "ref_01",
         sourceType: "document_fact",
         claimOrDecision:
-          "KOVA Light uses 5g cane sugar per 200ml can and has a Rp250,000,000 budget ceiling.",
+          "KOVA Light contains 5g cane sugar per 200ml can and uses a 100% Indonesian Arabica-Robusta blend.",
         referenceId: "fact_01",
-        citationNote: "KOVA-Brand-Brief-2026.pdf, Page 2",
+        citationNote: "KOVA-Brand-Brief-2026.pdf · Page 2 — Product Specs",
       },
       {
         id: "ref_02",
-        sourceType: "user_decision",
+        sourceType: "document_fact",
         claimOrDecision:
-          "Selected '3 PM Tanpa Drama' creative direction with Rp235,000,000 total budget (leaving Rp15,000,000 buffer under ceiling).",
-        referenceId: "dir_01",
-      },
-      {
-        id: "ref_03",
-        sourceType: "assumption",
-        claimOrDecision:
-          "MRT commuter hub sampling permits can be cleared within 10 business days prior to Week 3.",
-        citationNote: "Flagged for team validation during meeting",
+          "Primary launch cities are Jakarta and Surabaya, focusing on MRT/commuter transit corridors.",
+        referenceId: "fact_02",
+        citationNote: "KOVA-Brand-Brief-2026.pdf · Page 3 — Market & Distribution",
       },
     ],
-    nextSteps: [
-      "Review proposal with Creative Team Lead in scheduled meeting",
-      "Confirm MRT sampling permit lead times with activation vendor",
+    confirmedDecisions: [
+      {
+        id: "dec_01",
+        stage: "UNDERSTAND",
+        topic: "Corridor Targeting",
+        decision: "Prioritize MRT/KRL corridors in Jakarta and Surabaya",
+        rationale: "High concentration of target 20-32 demographic",
+        timestamp: "2026-10-18T04:10:00.000Z",
+      },
+    ],
+    talkingPoints: [
+      "Walk the team through the Rp120M creator / Rp80M sampling split to check alignment with Bima's physical asset requirements.",
+      "Clarify transit sampling permit lead times (MRT Jakarta & KRL) with the Team Lead before committing launch week dates.",
+    ],
+    openQuestions: [
+      "Who manages daily inventory replenishment at sampling stations?",
+    ],
+    assumptions: [
+      "Station sampling permits cleared within 10 business days",
+    ],
+    risks: [
+      {
+        risk: "Unauthorized clinical or health claims by creators",
+        mitigation: "Strict creative briefing guardrails and pre-approval",
+      },
+    ],
+    constraints: [
+      "Strict zero medical claims constraint",
+      "Total spend cannot exceed Rp250,000,000 across all 6 weeks",
+    ],
+    missingInfo: [],
+    roleSections: [
+      {
+        title: "Channel & Budget Allocation",
+        description: "Preliminary allocation under Rp250M ceiling",
+        items: [
+          "TikTok Creator Partnerships: Rp120,000,000",
+          "Commuter Station Sampling: Rp80,000,000",
+          "Paid Amplification: Rp35,000,000",
+          "Contingency Buffer: Rp15,000,000",
+        ],
+      },
     ],
     createdAt: "2026-10-17T15:25:00.000Z",
     updatedAt: "2026-10-17T15:25:00.000Z",

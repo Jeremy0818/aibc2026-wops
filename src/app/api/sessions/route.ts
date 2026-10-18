@@ -24,6 +24,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const matchedParticipant = meeting.participants.find(
+      (p) => p.id === parsed.participantId,
+    );
+
+    const participantRole =
+      parsed.participantRole ??
+      matchedParticipant?.role ??
+      meeting.participantRole ??
+      "Creative Campaign Planner";
+
+    const participantName =
+      parsed.participantName ??
+      matchedParticipant?.name ??
+      participantRole;
+
     const now = new Date().toISOString();
     const sessionId = `ses_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
 
@@ -31,6 +46,9 @@ export async function POST(request: NextRequest) {
       PreparationSessionSchema.parse({
         id: sessionId,
         meetingId: meeting.id,
+        participantId: parsed.participantId,
+        participantRole,
+        participantName,
         currentStage: "UNDERSTAND",
         stageHistory: [
           {

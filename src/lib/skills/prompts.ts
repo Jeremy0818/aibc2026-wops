@@ -1,9 +1,8 @@
 import { DocumentFact, DocumentMetadata } from "@/contracts/document";
 import { Meeting } from "@/contracts/meeting";
 import {
-  CampaignProposal,
-  CampaignProposalSchema,
-  CreativeDirection,
+  PreparationProposal,
+  PreparationProposalSchema,
 } from "@/contracts/proposal";
 import { PreparationSession } from "@/contracts/session";
 import { STAGE_DEFINITIONS } from "./stage-machine";
@@ -22,7 +21,7 @@ export function buildLiveSystemInstruction(params: {
       ? keyFacts
           .map(
             (f) =>
-              `- [${f.id}] ${f.statement}${
+              `- [${f.id} | ${f.category}] ${f.statement}${
                 f.pageOrSection ? ` (${f.pageOrSection})` : ""
               }`,
           )
@@ -36,19 +35,29 @@ export function buildLiveSystemInstruction(params: {
           .join("\n")
       : "- None recorded yet.";
 
+  const budgetText =
+    meeting.budgetCeilingIdr !== undefined
+      ? `Rp${meeting.budgetCeilingIdr.toLocaleString("en-US")} IDR (strict ceiling, not mandatory full spend)`
+      : "Not specified in brief yet (flag as open question if needed)";
+
   return [
     "You are WOPS! (Work Out Problems Swiftly) — 'Less Chit. More Chat.'",
-    "You are a proactive, voice-first AI thinking partner helping a team member prepare BEFORE a meeting.",
-    "Keep spoken responses concise, natural, warm, and focused on structured ideation.",
+    "You are a proactive, voice-first AI thinking partner helping an assigned participant prepare BEFORE a team meeting.",
+    "Keep spoken responses concise, natural, warm, and tailored to the participant's specific role.",
+    "",
+    "=== PARTICIPANT PROFILE ===",
+    `Name: ${session.participantName ?? "Team Member"}`,
+    `Role: ${session.participantRole}`,
+    `Participant ID: ${session.participantId}`,
     "",
     "=== MEETING CONTEXT ===",
     `Title: ${meeting.title}`,
     `Client: ${meeting.clientName} (Note: KOVA is a fictional Indonesian RTD coffee brand for demonstration)`,
     `Project: ${meeting.projectName}`,
     `Meeting Objective: ${meeting.meetingObjective}`,
-    `Client Objective: ${meeting.clientObjective}`,
-    `Target Audience: ${meeting.targetAudience}`,
-    `Budget Ceiling: Rp${meeting.budgetCeilingIdr.toLocaleString("en-US")} IDR (strict ceiling, not mandatory full spend)`,
+    `Client Objective: ${meeting.clientObjective ?? "To be confirmed from brief"}`,
+    `Target Audience: ${meeting.targetAudience ?? "To be confirmed from brief"}`,
+    `Budget Ceiling: ${budgetText}`,
     `Requirements: ${meeting.clientRequirements.join("; ") || "None specified"}`,
     `Constraints: ${meeting.constraints.join("; ") || "None specified"}`,
     "",
@@ -68,21 +77,31 @@ export function buildLiveSystemInstruction(params: {
     "1. Never fabricate medical, clinical, or weight-loss health claims for KOVA.",
     "2. Distinguish clearly between documented facts (`document_fact`), human choices (`user_decision`), and working assumptions (`assumption`).",
     "3. Keep total proposed spend at or below the budget ceiling.",
-    "4. Guide the human planner through options rather than taking over decision ownership.",
+    "4. Guide the human participant through options tailored to their role rather than taking over decision ownership.",
   ].join("\n");
 }
 
 export function buildDocumentExtractionPrompt(
   meeting: Meeting,
   fileName: string,
+  documentId: string,
 ): string {
   return [
     `Analyze the attached client document (${fileName}) for meeting "${meeting.title}" (${meeting.clientName} — ${meeting.projectName}).`,
     "Extract:",
     "1. A concise 1-3 sentence executive summary of the document.",
-    "2. Up to 8 concrete, verifiable facts (`extractedFacts`) with `id` (e.g., `fact_01`, `fact_02`), `statement`, and `pageOrSection`.",
+    "2. Up to 8 concrete, verifiable facts (`extractedFacts`).",
+    "Each fact must include:",
+    `- id: string (e.g., "${documentId}_fact_01")`,
+    "- statement: string",
+    "- category: one of 'client_objective' | 'requirement' | 'target_audience' | 'budget' | 'constraint' | 'deliverable' | 'timeline' | 'other'",
+    "- provenance: 'extracted'",
+    "- pageOrSection: string (e.g., 'Page 2 — Product Specs')",
+    `- sourceDocumentId: "${documentId}"`,
+    `- sourceDocumentName: "${fileName}"`,
+    "- confirmedByLead: false",
     "Do NOT invent claims that are not present in the document.",
-    "Return strict JSON matching: { \"summary\": string, \"extractedFacts\": Array<{ \"id\": string, \"statement\": string, \"pageOrSection\"?: string }> }",
+    "Return strict JSON matching: { \"summary\": string, \"extractedFacts\": Array<...> }",
   ].join("\n");
 }
 
@@ -103,8 +122,9 @@ export function buildProposalGenerationPrompt(params: {
   } = params;
 
   return [
-    "Synthesize a complete, grounded Creative Campaign Proposal JSON object for the following meeting and preparation session.",
+    "Synthesize a complete, role-aware personal PreparationProposal JSON object for the following participant's completed preparation session.",
     "",
+    `Participant: ${session.participantName ?? session.participantId} (${session.participantRole})`,
     `Meeting JSON: ${JSON.stringify(meeting)}`,
     `Extracted Document Facts: ${JSON.stringify(keyFacts)}`,
     `Confirmed Session Decisions: ${JSON.stringify(session.confirmedDecisions)}`,
@@ -114,11 +134,10 @@ export function buildProposalGenerationPrompt(params: {
     `Additional Notes: ${additionalNotes ?? "None"}`,
     "",
     "STRICT REQUIREMENTS:",
-    `1. totalBudgetIdr MUST be an integer <= ${meeting.budgetCeilingIdr} and MUST equal the sum of budgetBreakdown[].amountIdr.`,
-    "2. sixWeekTimeline MUST contain exactly 6 items (weekNumber 1 through 6).",
-    "3. KOVA is a fictional Indonesian ready-to-drink coffee brand. Do NOT include any unsupported medical or clinical health claims.",
-    "4. Every item in sourceReferences[] must specify sourceType as 'document_fact', 'user_decision', or 'assumption'.",
-    "5. Output valid JSON matching the CampaignProposal schema (excluding id, meetingId, sessionId, createdAt, updatedAt which the server will attach).",
+    "1. KOVA is a fictional Indonesian ready-to-drink coffee brand. Do NOT include any unsupported medical or clinical health claims.",
+    "2. Tailor title, summary, keyIdeas, directions, recommendations, talkingPoints, and roleSections to the participant's specific role.",
+    "3. Every item in sharedFacts[] must specify sourceType as 'document_fact', 'user_decision', or 'assumption'.",
+    "4. Output valid JSON matching PreparationProposalSchema.",
   ].join("\n");
 }
 
@@ -129,7 +148,7 @@ export function buildFallbackCampaignProposal(params: {
   session: PreparationSession;
   selectedConceptId?: string;
   additionalNotes?: string;
-}): CampaignProposal {
+}): PreparationProposal {
   const {
     proposalId,
     meeting,
@@ -139,241 +158,255 @@ export function buildFallbackCampaignProposal(params: {
     additionalNotes,
   } = params;
 
+  const now = new Date().toISOString();
+  const roleLower = session.participantRole.toLowerCase();
+  const isDesigner =
+    roleLower.includes("designer") ||
+    roleLower.includes("brand") ||
+    roleLower.includes("art") ||
+    roleLower.includes("visual");
+
   const chosenId =
-    selectedConceptId ?? session.selectedConceptId ?? "dir_01";
+    selectedConceptId ??
+    session.selectedConceptId ??
+    (isDesigner ? "dir_designer_01" : "dir_01");
 
-  const defaultDirections: CreativeDirection[] = [
-    {
-      id: "dir_01",
-      title: "3 PM Tanpa Drama (3 PM Without the Crash)",
-      tagline: "Kopi Beneran, Gula Ringan.",
-      conceptSummary:
-        "Own the 3 PM commuter and office slump moment in Jakarta and Surabaya with bold Indonesian coffee flavor and lighter sugar.",
-      rationale:
-        "Directly connects the 5g cane sugar product specification to a high-frequency daily commuter ritual without making clinical or medical health claims.",
-      isRecommended: chosenId === "dir_01",
-    },
-    {
-      id: "dir_02",
-      title: "Rute Fokus (The Commuter Focus Line)",
-      tagline: "Teman Perjalanan, Rasanya Pas.",
-      conceptSummary:
-        "Turn MRT, KRL, and TransJakarta transit corridors into interactive taste-discovery zones paired with creator commute diaries.",
-      rationale:
-        "Captures urban Gen Z and young millennial commuters during their daily transit routine with high-visibility sampling.",
-      isRecommended: chosenId === "dir_02",
-    },
-    {
-      id: "dir_03",
-      title: "Meja Kerja Segar (Afternoon Desk Reset)",
-      tagline: "Lanjut Kerja, Tetap Nikmat.",
-      conceptSummary:
-        "Co-working and office district seeding drops where teams unlock group tasting kits for their afternoon brainstorms.",
-      rationale:
-        "Drives peer-to-peer trial among young professionals in CBD offices while staying well within the Rp250,000,000 ceiling.",
-      isRecommended: chosenId === "dir_03",
-    },
-  ];
+  const sharedFacts =
+    keyFacts.length > 0
+      ? keyFacts.map((fact, idx) => ({
+          id: `ref_${idx + 1}`,
+          sourceType: "document_fact" as const,
+          claimOrDecision: fact.statement,
+          referenceId: fact.id,
+          citationNote: [fact.sourceDocumentName, fact.pageOrSection]
+            .filter(Boolean)
+            .join(" · "),
+        }))
+      : [
+          {
+            id: "ref_01",
+            sourceType: "document_fact" as const,
+            claimOrDecision:
+              "KOVA Light contains 5g cane sugar per 200ml can and uses a 100% Indonesian Arabica-Robusta blend.",
+            referenceId: "fact_01",
+            citationNote: "KOVA-Brand-Brief-2026.pdf · Page 2 — Product Specs",
+          },
+        ];
 
-  let selectedDirection =
-    defaultDirections.find((d) => d.id === chosenId) ?? defaultDirections[0];
+  const confirmedDecisions =
+    session.confirmedDecisions.length > 0
+      ? session.confirmedDecisions.map((dec) => ({
+          id: dec.id,
+          stage: dec.stage,
+          topic: dec.topic,
+          decision: dec.decision,
+          rationale:
+            dec.rationale ?? `Confirmed during ${dec.stage} stage`,
+          timestamp: dec.timestamp,
+        }))
+      : [
+          {
+            id: "dec_01",
+            stage: "UNDERSTAND",
+            topic: isDesigner
+              ? "Brand Aesthetic Direction"
+              : "Corridor Targeting",
+            decision: isDesigner
+              ? "Premium modern cold-brew visual language without clinical imagery"
+              : "Prioritize MRT/KRL transit corridors in Jakarta and Surabaya",
+            rationale: isDesigner
+              ? "Complies strictly with brief guardrails against medical claims while elevating shelf appeal"
+              : "Highest concentration of target 20-32 commuter demographic",
+            timestamp: now,
+          },
+        ];
 
-  // Ensure the selected direction exists in creativeDirections and is marked recommended
-  const creativeDirections = defaultDirections.map((d) => ({
-    ...d,
-    isRecommended: d.id === selectedDirection.id,
-  }));
-  selectedDirection = { ...selectedDirection, isRecommended: true };
+  if (isDesigner) {
+    return PreparationProposalSchema.parse({
+      id: proposalId,
+      meetingId: meeting.id,
+      participantId: session.participantId,
+      participantRole: session.participantRole,
+      participantName: session.participantName ?? "Bima Wijaya",
+      sessionId: session.id,
+      title: `${meeting.clientName} — Creative Direction & Visual Identity System`,
+      summary:
+        "Creative direction preparation proposing the 'Warm Terracotta & Fresh Mint' color system, minimalist physical sampling booth language, and cohesive digital asset deliverables that celebrate premium coffee taste without looking clinical.",
+      status: "completed",
+      keyIdeas: [
+        "Anchor the visual identity in 'Warm Terracotta & Fresh Mint'—evoking rich Indonesian coffee soil and crisp lightness without looking like a clinical diet product.",
+        "Design modular, eco-conscious physical sampling kiosks using light timber and matte recyclable aluminum to fit transit concourse guidelines.",
+        "Establish a high-contrast typography hierarchy: bold modern sans for coffee appetite appeal, delicate subtext for the '5g cane sugar' spec.",
+      ],
+      directions: [
+        {
+          id: chosenId,
+          title: "Warm Terracotta & Fresh Mint",
+          tagline: "Earthy Coffee Heritage, Refreshing Modern Pace.",
+          summary:
+            "Combines deep roasted espresso hues with crisp eucalyptus mint and warm paper textures for a premium, non-diet aesthetic.",
+          rationale:
+            "Eliminates the cold medical feel of conventional diet drinks while standing out vibrantly against grey transit station concourses.",
+          isRecommended: true,
+        },
+      ],
+      recommendations: [
+        {
+          id: "rec_designer_01",
+          topic: "Visual Packaging Hierarchy",
+          recommendation:
+            "Place 'Arabica-Robusta Blend' in prominent 24pt display font, and position '5g Gula Tebu' in an elegant lower pill badge.",
+          rationale:
+            "Signals taste supremacy immediately to avoid the 78% 'diet equals watery' bias noted in the client brief.",
+          isParticipantConfirmed: true,
+        },
+        {
+          id: "rec_designer_02",
+          topic: "Sampling Booth Materials",
+          recommendation:
+            "Construct transit sampling counters from modular FSC-certified timber frames with interchangeable fabric wraps.",
+          rationale:
+            "Allows quick overnight transit station setup within strict 2-hour MRT engineering windows.",
+          isParticipantConfirmed: true,
+        },
+      ],
+      sharedFacts,
+      confirmedDecisions,
+      talkingPoints: [
+        "Review the physical booth footprint with Nadia to ensure queue flow doesn't block turnstiles at Bundaran HI and Dukuh Atas MRT stations.",
+        "Check with Team Lead whether the client has finalized the 200ml aluminum can die-line and supplier Pantone specs.",
+        ...(additionalNotes ? [additionalNotes] : []),
+      ],
+      openQuestions: [
+        ...session.openQuestions,
+        "Can packaging manufacturer provide matte aluminum sample proofs before the team alignment meeting?",
+      ],
+      assumptions: [
+        "Packaging supplier can achieve matte tactile finish without increasing unit packaging cost.",
+        "MRT Jakarta concourses permit freestanding 2m x 1.5m modular wooden sampling counters.",
+      ],
+      risks: [
+        {
+          risk: "Matte finish on can sleeves scuffing during bulk carton transit to Surabaya.",
+          mitigation:
+            "Request UV protective coating sample tests from the packaging vendor.",
+        },
+      ],
+      constraints: [
+        "Visual layouts must not incorporate medical cross, calorie-counter, or clinical iconography.",
+        "Asset deliverables must be scalable to vertical 9:16, square 1:1, and transit outdoor 16:9 displays.",
+      ],
+      missingInfo: ["Approved 3D CAD files for the 200ml slim can format."],
+      roleSections: [
+        {
+          title: "Required Creative Asset Deliverables",
+          description: "Visual production scope for the 6-week launch campaign",
+          items: [
+            "Social Motion Kit: 8 animated story/reel intro templates and lower-third stickers.",
+            "Transit Hub Display Graphics: High-res outdoor banners (16:9) for Jakarta MRT concourse LED screens.",
+            "Physical Booth Architecture: Modular timber counter blueprints, barista apron embroidery, and branded recycling bins.",
+            "Creator Toolkit: Typography guidance, color hex codes (#C84B31, #3A6B56), and logo exclusion zones.",
+          ],
+        },
+      ],
+      createdAt: session.endedAt ?? now,
+      updatedAt: now,
+    });
+  }
 
-  // Scale budget strictly below or equal to meeting.budgetCeilingIdr
-  const ceiling = meeting.budgetCeilingIdr > 0 ? meeting.budgetCeilingIdr : 250000000;
+  const ceiling = meeting.budgetCeilingIdr ?? 250000000;
   const targetTotal =
     ceiling >= 250000000 ? 235000000 : Math.floor(ceiling * 0.94);
+  const reserve = ceiling - targetTotal;
 
-  const c1 = Math.floor(targetTotal * 0.36);
-  const c2 = Math.floor(targetTotal * 0.32);
-  const c3 = Math.floor(targetTotal * 0.21);
-  const c4 = targetTotal - (c1 + c2 + c3);
-
-  const budgetBreakdown = [
-    {
-      category: "Creator Partnerships & Seeding",
-      amountIdr: c1,
-      notes: "15 mid-tier Jakarta & Surabaya commuter/lifestyle creators + seeding kits",
-    },
-    {
-      category: "Commuter Sampling & Pop-Up Activations",
-      amountIdr: c2,
-      notes: "3 PM sampling booths at MRT Dukuh Atas, Blok M, and Surabaya transit hubs",
-    },
-    {
-      category: "Paid Social Amplification",
-      amountIdr: c3,
-      notes: "TikTok & Instagram Reels dayparted between 14:00-17:00 WIB",
-    },
-    {
-      category: "Content Production & POS Collateral",
-      amountIdr: c4,
-      notes: "Short-form video assets and convenience store trial display materials",
-    },
-  ];
-
-  const totalBudgetIdr = budgetBreakdown.reduce(
-    (sum, item) => sum + item.amountIdr,
-    0,
-  );
-
-  const firstFact = keyFacts[0];
-  const sourceReferences = [
-    {
-      id: "ref_01",
-      sourceType: "document_fact" as const,
-      claimOrDecision:
-        firstFact?.statement ??
-        `${meeting.clientName} (${meeting.projectName}) operates under a strict budget ceiling of Rp${meeting.budgetCeilingIdr.toLocaleString("en-US")} with no unsupported medical claims.`,
-      referenceId: firstFact?.id ?? "fact_01",
-      citationNote: firstFact?.pageOrSection ?? "Client Brief & Meeting Spec",
-    },
-    ...session.confirmedDecisions.map((dec, idx) => ({
-      id: `ref_dec_${idx + 1}`,
-      sourceType: dec.sourceType,
-      claimOrDecision: `${dec.topic}: ${dec.decision}`,
-      referenceId: dec.id,
-      citationNote: dec.rationale ?? `Confirmed during ${dec.stage} stage`,
-    })),
-    {
-      id: "ref_dir",
-      sourceType: "user_decision" as const,
-      claimOrDecision: `Selected '${selectedDirection.title}' (${selectedDirection.id}) with total budget Rp${totalBudgetIdr.toLocaleString("en-US")} IDR (leaving Rp${(ceiling - totalBudgetIdr).toLocaleString("en-US")} IDR buffer under ceiling).`,
-      referenceId: selectedDirection.id,
-      citationNote: additionalNotes ?? "Confirmed for team review",
-    },
-    {
-      id: "ref_assumption_01",
-      sourceType: "assumption" as const,
-      claimOrDecision:
-        "Transit hub and convenience store sampling permits in Jakarta and Surabaya can be cleared within 10 business days prior to Week 3.",
-      citationNote: "Flagged as working assumption for team alignment",
-    },
-  ];
-
-  const now = new Date().toISOString();
-
-  return CampaignProposalSchema.parse({
+  return PreparationProposalSchema.parse({
     id: proposalId,
     meetingId: meeting.id,
+    participantId: session.participantId,
+    participantRole: session.participantRole,
+    participantName: session.participantName ?? "Nadia Kusuma",
     sessionId: session.id,
-    executiveSummary: `A 6-week launch campaign for ${meeting.projectName} centered on "${selectedDirection.title}" — driving product trial among ${meeting.targetAudience} while keeping total spend at Rp${totalBudgetIdr.toLocaleString("en-US")} IDR (under the Rp${ceiling.toLocaleString("en-US")} IDR ceiling).`,
-    clientContext: `${meeting.clientName} (fictional Indonesian RTD coffee brand) is preparing ${meeting.projectName}. Objective: ${meeting.clientObjective}.`,
-    campaignObjectives: [
-      meeting.clientObjective,
-      meeting.meetingObjective,
-      "Establish strong taste perception and afternoon ritual relevance without clinical or medical health claims",
+    title: `${meeting.clientName} — Campaign Strategy & Channel Allocation`,
+    summary: `Strategic pre-meeting preparation exploring commuter transit corridors in Jakarta and Surabaya, taste-first positioning, and a Rp${targetTotal.toLocaleString("en-US")} channel allocation under the Rp${ceiling.toLocaleString("en-US")} ceiling with a Rp${reserve.toLocaleString("en-US")} contingency reserve.`,
+    status: "completed",
+    keyIdeas: [
+      "Prioritize high-density urban transit corridors (Jakarta MRT/KRL and Surabaya transit) for 20-32 young commuters.",
+      "Adopt 'Real Taste, Lighter Pace' hook: lead with authentic Arabica-Robusta taste first, with low-sugar as the everyday lifestyle benefit.",
+      `Deploy a Rp${targetTotal.toLocaleString("en-US")} channel split across creator seeding and commuter sampling, preserving a Rp${reserve.toLocaleString("en-US")} contingency reserve under the ceiling.`,
     ],
-    targetAudience: meeting.targetAudience,
-    creativeDirections,
-    selectedDirection,
-    keyMessages: [
-      "Real Indonesian Arabica-Robusta coffee character with lighter sugar for your 3 PM rhythm",
-      "Designed for urban commuters who want full iced-coffee flavor without heavy afternoon sweetness",
-    ],
-    activationIdeas: [
-      "3 PM Commuter Drop sampling booths near MRT Dukuh Atas, Blok M, and Surabaya Gubeng",
-      "Office Desk Rescue tasting kits paired with authentic creator reaction reels",
-      "Convenience store bundle trial mechanics during afternoon rush hours",
-    ],
-    channelStrategy: [
+    directions: [
       {
-        channel: "TikTok & Instagram Reels",
-        role: "Reach & Cultural Relatability",
-        tactics: [
-          "3 PM commuter POV skits",
-          "Blind taste-test street interviews in Jakarta & Surabaya",
-        ],
-      },
-      {
-        channel: "Commuter Transit & Convenience Retail OOH",
-        role: "High-Frequency Trial Trigger",
-        tactics: [
-          "QR-enabled sampling vouchers redeemable at nearby minimarkets",
-          "Afternoon daypart digital screens at transit hubs",
-        ],
+        id: chosenId,
+        title: "3 PM Tanpa Drama (Real Taste, Lighter Pace)",
+        tagline: "Kopi Beneran, Gula Ringan.",
+        summary:
+          "Target the 3 PM commuter slump across Jabodetabek and Surabaya transit corridors with taste-first messaging.",
+        rationale:
+          "Directly tackles the 78% watery-taste perception barrier from client research without resorting to medical or diet claims.",
+        isRecommended: true,
       },
     ],
-    creatorStrategy:
-      "Partner with 15 mid-tier Jakarta and Surabaya commuter, work-life, and coffee-culture creators focusing on genuine taste reactions and strict compliance with no-health-claim guidelines.",
-    sixWeekTimeline: [
+    recommendations: [
       {
-        weekNumber: 1,
-        phaseName: "Pre-Launch Teaser & Creator Seeding",
-        milestones: [
-          "Lock creator compliance briefs",
-          "Dispatch 3 PM Desk Rescue seeding kits",
-        ],
-        deliverables: [
-          "15 creator seeding packages",
-          "Teaser short-form video cuts",
-        ],
+        id: "rec_01",
+        topic: "Channel Mix",
+        recommendation:
+          "Allocate Rp120M to TikTok creator seeding, Rp80M to commuter transit sampling, and Rp35M to paid social.",
+        rationale:
+          "Balances wide viral reach with high-touch physical product trial where commuters gather daily.",
+        isParticipantConfirmed: true,
       },
       {
-        weekNumber: 2,
-        phaseName: "Hero Digital Launch & 3 PM Daypart Takeover",
-        milestones: ["Publish hero reels", "Activate dayparted paid social"],
-        deliverables: ["Hero campaign film", "Paid social flight 1"],
-      },
-      {
-        weekNumber: 3,
-        phaseName: "Jakarta Commuter Hub Sampling",
-        milestones: ["MRT Dukuh Atas & Blok M pop-up sampling"],
-        deliverables: ["Sampling booth experience", "Live commuter vox-pop reels"],
-      },
-      {
-        weekNumber: 4,
-        phaseName: "Surabaya Expansion & Creator Duets",
-        milestones: ["Surabaya office & transit activation"],
-        deliverables: ["Wave 2 creator content", "Regional promo codes"],
-      },
-      {
-        weekNumber: 5,
-        phaseName: "Convenience Store Trial Push",
-        milestones: ["Minimarket afternoon bundle promotion"],
-        deliverables: ["In-store POS wobblers", "Redemption tracking report"],
-      },
-      {
-        weekNumber: 6,
-        phaseName: "Retargeting & Campaign Wrap Review",
-        milestones: ["Synthesize trial & repeat-intent metrics"],
-        deliverables: ["Post-campaign learnings & scale recommendation deck"],
+        id: "rec_02",
+        topic: "Contingency Safety",
+        recommendation: `Hold a Rp${reserve.toLocaleString("en-US")} unallocated reserve under the Rp${ceiling.toLocaleString("en-US")} budget ceiling.`,
+        rationale:
+          "Covers potential transit permit overtime fees or creator asset revisions without exceeding client brief ceiling.",
+        isParticipantConfirmed: true,
       },
     ],
-    budgetBreakdown,
-    totalBudgetIdr,
-    kpis: [
-      "12,000+ cans sampled across Jakarta and Surabaya commuter hubs",
-      "2.5M+ organic and paid video views among 20-32 urban commuters",
-      "8,000+ convenience store voucher redemptions within 6 weeks",
+    sharedFacts,
+    confirmedDecisions,
+    talkingPoints: [
+      "Walk the team through the Rp120M creator / Rp80M sampling split to check alignment with Bima's physical asset requirements.",
+      "Clarify transit sampling permit lead times (MRT Jakarta & KRL) with the Team Lead before committing launch week dates.",
+      ...(additionalNotes ? [additionalNotes] : []),
+    ],
+    openQuestions: [
+      ...session.openQuestions,
+      "Who manages on-ground cold storage and inventory replenishment at Jakarta MRT sampling hubs?",
+    ],
+    assumptions: [
+      "MRT and KRL transit station sampling permits can be secured within 10-14 business days.",
+      "TikTok Spark ad whitelisting permits creator turnaround within 5 days of product delivery.",
     ],
     risks: [
       {
-        risk: "Creators inadvertently improvising medical, clinical, or weight-loss claims when describing low sugar",
+        risk: "Creator content veering into clinical or weight-loss claims during live streaming.",
         mitigation:
-          "Enforce a mandatory creator script checklist and pre-publish review prohibiting medical or health claims",
+          "Mandatory compliance checklist and pre-approval gate for all sponsored video drafts.",
       },
+    ],
+    constraints: [
+      "Strict zero clinical or medical claims constraint (Client Brief Guardrail).",
+      `Total spend cannot exceed Rp${ceiling.toLocaleString("en-US")} across all 6 weeks.`,
+    ],
+    missingInfo: [
+      "Confirmed list of primary MRT stations permitted for beverage sampling.",
+    ],
+    roleSections: [
       {
-        risk: "Transit station sampling permit delays in Jakarta or Surabaya",
-        mitigation:
-          "Secure backup co-working space and office lobby partner venues by Week 1",
+        title: "Proposed Channel & Budget Breakdown",
+        description: `Preliminary allocation under Rp${ceiling.toLocaleString("en-US")} ceiling with contingency reserve`,
+        items: [
+          "TikTok Spark Ads & Creator Seeding: Rp120,000,000 (15 lifestyle creators)",
+          "Commuter Station Sampling Hubs: Rp80,000,000 (Jakarta MRT + Surabaya Gubeng)",
+          "Meta Whitelisting & Digital Amplification: Rp35,000,000",
+          `Safety Contingency Reserve: Rp${reserve.toLocaleString("en-US")} (Remaining under ceiling)`,
+        ],
       },
     ],
-    sourceReferences,
-    nextSteps: [
-      "Review recommended creative direction and budget allocation with Creative Team Lead",
-      "Confirm transit hub sampling permit lead times with activation vendor",
-      ...(session.openQuestions.length > 0
-        ? session.openQuestions.map((q) => `Resolve open question: ${q}`)
-        : []),
-    ],
-    createdAt: now,
+    createdAt: session.endedAt ?? now,
     updatedAt: now,
   });
 }

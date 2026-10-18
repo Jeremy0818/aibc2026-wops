@@ -5,9 +5,11 @@ import {
   type CreateMeetingRequest,
 } from "./meeting";
 import {
+  CreateDocumentFactRequestSchema,
   DocumentMetadataSchema,
   DocumentProcessingStatusSchema,
   MeetingContextResponseSchema,
+  type CreateDocumentFactRequest,
   type DocumentMetadata,
   type DocumentProcessingStatus,
 } from "./document";
@@ -24,9 +26,9 @@ import {
   type LiveTokenResponse,
 } from "./session";
 import {
-  CampaignProposalSchema,
+  PreparationProposalSchema,
   GenerateProposalRequestSchema,
-  type CampaignProposal,
+  type PreparationProposal,
   type GenerateProposalRequest,
 } from "./proposal";
 import { ApiErrorSchema, type ApiError } from "./error";
@@ -113,7 +115,22 @@ export function validateSampleContracts(): void {
     documents: [documentMeta],
     synthesizedBrief: "KOVA Light launch brief summary.",
     keyFacts: documentMeta.extractedFacts,
+    contextVersion: 1,
   });
+
+  const createFactReq: CreateDocumentFactRequest =
+    CreateDocumentFactRequestSchema.parse({
+      statement: "KOVA campaign budget ceiling is Rp250,000,000 for 6 weeks.",
+      category: "budget",
+      provenance: "lead_added",
+      confirmedByLead: true,
+      addedByRole: "Creative Team Lead",
+      addedByUserId: "usr_lead_01",
+    });
+
+  if (createFactReq.provenance !== "lead_added") {
+    throw new Error("Expected fact provenance to be 'lead_added'");
+  }
 
   const stage: SkillStage = SkillStageSchema.parse("UNDERSTAND");
 
@@ -147,6 +164,8 @@ export function validateSampleContracts(): void {
   const session: PreparationSession = PreparationSessionSchema.parse({
     id: "ses_kova_001",
     meetingId: meeting.id,
+    participantId: "usr_planner_01",
+    participantRole: "Creative Campaign Planner",
     currentStage: "ALIGN",
     stageHistory: [
       {
@@ -201,89 +220,92 @@ export function validateSampleContracts(): void {
     id: genProposalReq.selectedConceptId ?? "dir_01",
     title: "3 PM Tanpa Drama",
     tagline: "Kopi Beneran, Gula Ringan.",
-    conceptSummary: "Own the 3 PM commuter slump in Jakarta and Surabaya.",
+    summary: "Own the 3 PM commuter slump in Jakarta and Surabaya.",
     rationale: "Connects low-sugar spec to daily commuter habit.",
     isRecommended: true,
   };
 
-  const proposal: CampaignProposal = CampaignProposalSchema.parse({
-    id: "prop_kova_001",
+  const proposal: PreparationProposal = PreparationProposalSchema.parse({
+    id: "prop_kova_planner_001",
     meetingId: meeting.id,
+    participantId: session.participantId,
+    participantRole: session.participantRole,
+    participantName: session.participantName,
     sessionId: session.id,
-    executiveSummary: "6-week launch campaign for KOVA Light.",
-    clientContext:
-      "KOVA is a fictional Indonesian RTD coffee brand launching a low-sugar line.",
-    campaignObjectives: [
-      "Drive commuter trial in Jakarta and Surabaya",
-      "Build low-sugar taste credibility without health claims",
+    title: "Campaign Strategy & Channel Allocation",
+    summary: "Strategic preparation for KOVA Light targeting Jakarta & Surabaya commuter corridors.",
+    status: "completed",
+    keyIdeas: [
+      "Target MRT/KRL transit corridors during 3 PM commute slump",
+      "Adopt 'Real Taste, Lighter Pace' positioning",
     ],
-    targetAudience: meeting.targetAudience,
-    creativeDirections: [selectedDirection],
-    selectedDirection,
-    keyMessages: ["Real coffee character, lighter sugar"],
-    activationIdeas: ["MRT commuter drop sampling"],
-    channelStrategy: [
+    directions: [selectedDirection],
+    recommendations: [
       {
-        channel: "TikTok & Instagram Reels",
-        role: "Reach & Relatability",
-        tactics: ["3 PM POV creator skits"],
+        id: "rec_01",
+        topic: "Channel Mix",
+        recommendation: "Rp120M creator seeding + Rp80M commuter transit hubs",
+        rationale: "Maximizes sampling volume under Rp250M ceiling",
+        isParticipantConfirmed: true,
       },
     ],
-    creatorStrategy: "Partner with 15 lifestyle & commuter creators.",
-    sixWeekTimeline: [1, 2, 3, 4, 5, 6].map((weekNumber) => ({
-      weekNumber,
-      phaseName: `Week ${weekNumber} Execution`,
-      milestones: [`Milestone ${weekNumber}`],
-      deliverables: [`Deliverable ${weekNumber}`],
-    })),
-    budgetBreakdown: [
+    confirmedDecisions: [
       {
-        category: "Creator Partnerships",
-        amountIdr: 85_000_000,
-      },
-      {
-        category: "Commuter Sampling",
-        amountIdr: 75_000_000,
-      },
-      {
-        category: "Paid Social & Production",
-        amountIdr: 75_000_000,
+        id: "dec_01",
+        stage: "UNDERSTAND",
+        topic: "Corridor Targeting",
+        decision: "Prioritize MRT/KRL corridors in Jakarta and Surabaya",
+        rationale: "High concentration of target 20-32 demographic",
+        timestamp: "2026-10-18T04:10:00.000Z",
       },
     ],
-    totalBudgetIdr: 235_000_000,
-    kpis: ["12,000 cans sampled", "2.5M video views"],
-    risks: [
-      {
-        risk: "Unauthorized health claims by creators",
-        mitigation: "Mandatory creator script review",
-      },
-    ],
-    sourceReferences: [
+    sharedFacts: [
       {
         id: "ref_01",
         sourceType: "document_fact",
-        claimOrDecision: "5g sugar per 200ml can",
+        claimOrDecision: "5g cane sugar per 200ml can",
         referenceId: "fact_01",
-      },
-      {
-        id: "ref_02",
-        sourceType: "user_decision",
-        claimOrDecision: "Selected '3 PM Tanpa Drama' direction",
-        referenceId: "dec_01",
-      },
-      {
-        id: "ref_03",
-        sourceType: "assumption",
-        claimOrDecision: "MRT sampling permit cleared in 10 business days",
+        citationNote: "Page 2 — Product Specs",
       },
     ],
-    nextSteps: ["Present proposal in scheduled team review"],
+    talkingPoints: [
+      "Bring up MRT sampling permit timeline with account lead",
+      "Confirm Surabaya on-ground logistics team",
+    ],
+    openQuestions: [
+      "Who manages daily inventory replenishment at sampling stations?",
+    ],
+    assumptions: [
+      "Station sampling permits cleared within 10 business days",
+    ],
+    risks: [
+      {
+        risk: "Unauthorized clinical or health claims by creators",
+        mitigation: "Strict creative briefing guardrails and pre-approval",
+      },
+    ],
+    constraints: [
+      "Strict zero medical claims constraint",
+    ],
+    missingInfo: [],
+    roleSections: [
+      {
+        title: "Channel & Budget Allocation",
+        description: "Preliminary allocation under Rp250M ceiling",
+        items: [
+          "TikTok Creator Partnerships: Rp120,000,000",
+          "Commuter Station Sampling: Rp80,000,000",
+          "Paid Amplification: Rp35,000,000",
+          "Contingency Buffer: Rp15,000,000",
+        ],
+      },
+    ],
     createdAt: "2026-10-17T15:25:00.000Z",
     updatedAt: "2026-10-17T15:25:00.000Z",
   });
 
-  if (proposal.totalBudgetIdr > meeting.budgetCeilingIdr) {
-    throw new Error("Proposal totalBudgetIdr exceeds meeting budgetCeilingIdr");
+  if (proposal.status !== "completed") {
+    throw new Error("Validation failed: Proposal status should be completed.");
   }
 
   const apiError: ApiError = ApiErrorSchema.parse({
@@ -299,3 +321,7 @@ export function validateSampleContracts(): void {
     throw new Error("Invalid API error schema");
   }
 }
+
+// Self-executing validation check
+validateSampleContracts();
+

@@ -12,6 +12,8 @@ import {
   uploadFileToFirebaseStorage,
 } from "@/lib/server/store";
 
+const MAX_PDF_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ meetingId: string }> },
@@ -47,12 +49,32 @@ export async function POST(
       );
     }
 
+    const isPdfMime = fileEntry.type === "application/pdf";
+    const isPdfName = fileEntry.name.toLowerCase().endsWith(".pdf");
+    if (!isPdfMime && !isPdfName) {
+      throw new WopsApiError(
+        "VALIDATION_ERROR",
+        "Unsupported file format. Only PDF files (.pdf) are supported in MVP.",
+        422,
+        [{ field: "file", message: "Only application/pdf files are supported" }],
+      );
+    }
+
     if (fileEntry.size === 0) {
       throw new WopsApiError(
         "UNPROCESSABLE_ENTITY",
         "Uploaded document file cannot be empty",
         422,
         [{ field: "file", message: "File size must be greater than 0 bytes" }],
+      );
+    }
+
+    if (fileEntry.size > MAX_PDF_FILE_SIZE_BYTES) {
+      throw new WopsApiError(
+        "UNPROCESSABLE_ENTITY",
+        "Uploaded PDF exceeds the 10 MB maximum file size limit",
+        422,
+        [{ field: "file", message: "Maximum allowed size is 10,485,760 bytes" }],
       );
     }
 
@@ -78,6 +100,7 @@ export async function POST(
 
     const { summary, extractedFacts } = await extractDocumentFactsWithGemini({
       meeting,
+      documentId: docId,
       fileName: fileEntry.name,
       mimeType,
       buffer,
@@ -108,7 +131,7 @@ export async function POST(
     await updateMeeting({
       ...meeting,
       documentIds: updatedDocIds,
-      status: meeting.status === "draft" ? "ready" : meeting.status,
+      contextVersion: (meeting.contextVersion ?? 1) + 1,
     });
 
     return NextResponse.json({ document }, { status: 201 });
