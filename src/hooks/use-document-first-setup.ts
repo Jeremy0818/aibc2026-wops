@@ -10,6 +10,7 @@ import type {
 import {
   createMeeting,
   finalizeMeeting,
+  getMeetingById,
   WopsApiClientError,
 } from "@/lib/client/meetings-api";
 import {
@@ -169,7 +170,17 @@ export function useDocumentFirstSetup() {
       setKeyFacts(ctx.keyFacts);
       setContextError(null);
     } catch (err) {
-      setContextError(toClientError(err, "Couldn't load extracted context"));
+      // In Live Mode before Sprint B3 document context endpoint is implemented,
+      // fallback to reading meeting details directly via getMeetingById.
+      try {
+        const directMeeting = await getMeetingById(meetingId);
+        setMeeting(directMeeting);
+        setContextDocuments([]);
+        setKeyFacts([]);
+        setContextError(null);
+      } catch {
+        setContextError(toClientError(err, "Couldn't load extracted context"));
+      }
     }
   }, []);
 

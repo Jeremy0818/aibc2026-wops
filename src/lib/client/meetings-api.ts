@@ -8,16 +8,20 @@ import {
   CreateMeetingRequestSchema,
   FinalizeMeetingRequestSchema,
   MeetingSchema,
+  UpdateMeetingRequestSchema,
   type CreateMeetingRequest,
   type FinalizeMeetingRequest,
   type Meeting,
+  type UpdateMeetingRequest,
 } from "@/contracts/meeting";
+import { authenticatedFetch } from "./api-client";
 import {
   isMockModeEnabled,
   mockCreateMeeting,
   mockFinalizeMeeting,
   mockGetMeetingById,
   mockListMeetings,
+  mockUpdateMeeting,
 } from "./mock-meetings";
 import {
   isDevLiveContextBridgeActive,
@@ -71,6 +75,22 @@ async function parseErrorResponse(response: Response): Promise<WopsApiClientErro
     // Response was not valid JSON
   }
 
+  if (response.status === 401) {
+    return new WopsApiClientError({
+      message: "Authentication required. Please sign in with Google.",
+      status: 401,
+      code: "UNAUTHORIZED",
+    });
+  }
+
+  if (response.status === 403) {
+    return new WopsApiClientError({
+      message: "Access forbidden. Only the authorized Team Lead or assigned participants can access this meeting.",
+      status: 403,
+      code: "FORBIDDEN",
+    });
+  }
+
   if (response.status === 404) {
     return new WopsApiClientError({
       message: `API endpoint or resource not found (HTTP 404: ${response.url}). If the backend route is not yet implemented, enable Mock Mode specifically for local development.`,
@@ -97,7 +117,7 @@ export async function listMeetings(): Promise<Meeting[]> {
 
   let response: Response;
   try {
-    response = await fetch("/api/meetings", {
+    response = await authenticatedFetch("/api/meetings", {
       method: "GET",
       headers: { Accept: "application/json" },
       cache: "no-store",
@@ -160,7 +180,7 @@ export async function createMeeting(
 
   let response: Response;
   try {
-    response = await fetch("/api/meetings", {
+    response = await authenticatedFetch("/api/meetings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -232,7 +252,7 @@ export async function getMeetingById(meetingId: string): Promise<Meeting> {
 
   let response: Response;
   try {
-    response = await fetch(
+    response = await authenticatedFetch(
       `/api/meetings/${encodeURIComponent(trimmedId)}`,
       {
         method: "GET",
@@ -273,6 +293,85 @@ export async function getMeetingById(meetingId: string): Promise<Meeting> {
 }
 
 /**
+ * PATCH /api/meetings/{meetingId}
+ * Updates meeting details. Restricted strictly to Team Lead.
+ */
+export async function updateMeeting(
+  meetingId: string,
+  input: UpdateMeetingRequest
+): Promise<Meeting> {
+  const trimmedId = meetingId.trim();
+  if (!trimmedId) {
+    throw new WopsApiClientError({
+      message: "Meeting ID is required to update meeting",
+      status: 400,
+      code: "BAD_REQUEST",
+    });
+  }
+
+  const validation = UpdateMeetingRequestSchema.safeParse(input);
+  if (!validation.success) {
+    throw new WopsApiClientError({
+      message: "Meeting update validation failed before request submission",
+      status: 422,
+      code: "VALIDATION_ERROR",
+      details: validation.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  if (isMockModeEnabled()) {
+    return mockUpdateMeeting(trimmedId, validation.data);
+  }
+
+  let response: Response;
+  try {
+    response = await authenticatedFetch(
+      `/api/meetings/${encodeURIComponent(trimmedId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(validation.data),
+      }
+    );
+  } catch (err) {
+    throw new WopsApiClientError({
+      message:
+        err instanceof Error
+          ? `Network error while updating /api/meetings/${trimmedId}: ${err.message}`
+          : `Network error while updating /api/meetings/${trimmedId}`,
+      status: 0,
+      code: "NETWORK_ERROR",
+    });
+  }
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = SingleMeetingResponseSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new WopsApiClientError({
+      message: `Invalid response schema from PATCH /api/meetings/${trimmedId}`,
+      status: response.status,
+      code: "SCHEMA_ERROR",
+      details: parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  return parsed.data.meeting;
+}
+
+/**
  * POST /api/meetings/{meetingId}/finalize
  * Contract V2: Finalizes meeting setup and marks it ready for employee preparation.
  */
@@ -297,7 +396,7 @@ export async function finalizeMeeting(
 
   let response: Response;
   try {
-    response = await fetch(
+    response = await authenticatedFetch(
       `/api/meetings/${encodeURIComponent(trimmedId)}/finalize`,
       {
         method: "POST",

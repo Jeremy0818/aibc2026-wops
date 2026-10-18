@@ -48,6 +48,10 @@ export const MeetingSchema = z.object({
 
   // Context revision version for change tracking across sessions
   contextVersion: z.number().int().positive().default(1),
+
+  // Identity & Membership fields (Sprint B2)
+  teamLeadUserId: z.string().min(1).optional(),
+  participantUserIds: z.array(z.string().min(1)).optional(),
 });
 
 /**
@@ -75,6 +79,26 @@ export const CreateMeetingRequestSchema = z.object({
 });
 
 /**
+ * Contract V3 (Sprint B2): UpdateMeetingRequestSchema
+ * Payload to update meeting metadata, schedule, or participant list by Team Lead.
+ */
+export const UpdateMeetingRequestSchema = z.object({
+  title: z.string().min(1).optional(),
+  clientName: z.string().min(1).optional(),
+  projectName: z.string().min(1).optional(),
+  scheduledAt: z.string().datetime().optional(),
+  meetingObjective: z.string().min(1).optional(),
+  leadRole: z.string().min(1).optional(),
+  participants: z.array(MeetingParticipantSchema).min(1).optional(),
+  clientObjective: z.string().min(1).optional(),
+  targetAudience: z.string().min(1).optional(),
+  budgetCeilingIdr: z.number().int().nonnegative().optional(),
+  clientRequirements: z.array(z.string().min(1)).optional(),
+  constraints: z.array(z.string().min(1)).optional(),
+  status: MeetingStatusSchema.optional(),
+});
+
+/**
  * Contract V2: FinalizeMeetingRequestSchema
  * Payload to confirm/correct extracted client context and mark meeting setup ready.
  */
@@ -90,4 +114,5 @@ export type MeetingStatus = z.infer<typeof MeetingStatusSchema>;
 export type MeetingParticipant = z.infer<typeof MeetingParticipantSchema>;
 export type Meeting = z.infer<typeof MeetingSchema>;
 export type CreateMeetingRequest = z.infer<typeof CreateMeetingRequestSchema>;
+export type UpdateMeetingRequest = z.infer<typeof UpdateMeetingRequestSchema>;
 export type FinalizeMeetingRequest = z.infer<typeof FinalizeMeetingRequestSchema>;

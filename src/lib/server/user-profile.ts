@@ -103,3 +103,76 @@ export async function upsertUserProfile(user: AuthenticatedUser): Promise<UserPr
     updatedAt: toIsoString(updatedData?.updatedAt),
   };
 }
+
+/**
+ * Look up a user profile by email in Firestore.
+ */
+export async function findUserByEmail(email: string): Promise<UserProfile | null> {
+  if (!email || !email.trim()) return null;
+  const db = getAdminFirestore();
+  const normalized = email.trim();
+
+  // Primary check: exact match
+  const snap = await db
+    .collection(USERS_COLLECTION)
+    .where("email", "==", normalized)
+    .limit(1)
+    .get();
+
+  if (!snap.empty) {
+    const doc = snap.docs[0];
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      displayName: (data.displayName as string | undefined) ?? null,
+      email: (data.email as string | undefined) ?? null,
+      photoURL: (data.photoURL as string | undefined) ?? null,
+      createdAt: toIsoString(data.createdAt),
+      updatedAt: toIsoString(data.updatedAt),
+    };
+  }
+
+  // Fallback: check lowercase if different
+  if (normalized.toLowerCase() !== normalized) {
+    const lowerSnap = await db
+      .collection(USERS_COLLECTION)
+      .where("email", "==", normalized.toLowerCase())
+      .limit(1)
+      .get();
+
+    if (!lowerSnap.empty) {
+      const doc = lowerSnap.docs[0];
+      const data = doc.data();
+      return {
+        uid: doc.id,
+        displayName: (data.displayName as string | undefined) ?? null,
+        email: (data.email as string | undefined) ?? null,
+        photoURL: (data.photoURL as string | undefined) ?? null,
+        createdAt: toIsoString(data.createdAt),
+        updatedAt: toIsoString(data.updatedAt),
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * List registered team users from Firestore (useful for participant assignment).
+ */
+export async function listRegisteredUsers(limit = 50): Promise<UserProfile[]> {
+  const db = getAdminFirestore();
+  const snap = await db.collection(USERS_COLLECTION).limit(limit).get();
+
+  return snap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      displayName: (data.displayName as string | undefined) ?? null,
+      email: (data.email as string | undefined) ?? null,
+      photoURL: (data.photoURL as string | undefined) ?? null,
+      createdAt: toIsoString(data.createdAt),
+      updatedAt: toIsoString(data.updatedAt),
+    };
+  });
+}

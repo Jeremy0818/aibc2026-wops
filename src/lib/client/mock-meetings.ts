@@ -18,9 +18,11 @@ import {
 import {
   CreateMeetingRequestSchema,
   MeetingSchema,
+  UpdateMeetingRequestSchema,
   type CreateMeetingRequest,
   type FinalizeMeetingRequest,
   type Meeting,
+  type UpdateMeetingRequest,
 } from "@/contracts/meeting";
 
 const MOCK_MODE_STORAGE_KEY = "wops:use_mock_api";
@@ -350,6 +352,32 @@ export async function mockCreateMeeting(
   const existing = readStoredMockMeetings();
   writeStoredMockMeetings([createdMeeting, ...existing]);
   return createdMeeting;
+}
+
+export async function mockUpdateMeeting(
+  meetingId: string,
+  input: UpdateMeetingRequest
+): Promise<Meeting> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const validated = UpdateMeetingRequestSchema.parse(input);
+  const meetings = readStoredMockMeetings();
+  const idx = meetings.findIndex((m) => m.id === meetingId);
+  if (idx === -1) {
+    throw new Error(`Meeting "${meetingId}" not found in mock storage.`);
+  }
+
+  const existing = meetings[idx];
+  const nowIso = new Date().toISOString();
+
+  const updated: Meeting = MeetingSchema.parse({
+    ...existing,
+    ...validated,
+    updatedAt: nowIso,
+  });
+
+  meetings[idx] = updated;
+  writeStoredMockMeetings(meetings);
+  return updated;
 }
 
 export async function mockMarkMeetingSetupReady(

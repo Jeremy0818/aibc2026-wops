@@ -183,14 +183,17 @@ export function useMeetingDetail(meetingId: string) {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getMeetingById(meetingId), getMeetingContext(meetingId)])
+    const fetchMeeting = getMeetingById(meetingId);
+    const fetchContext = getMeetingContext(meetingId).catch(() => null);
+
+    Promise.all([fetchMeeting, fetchContext])
       .then(([meetingData, contextData]) => {
         if (cancelled) return;
-        setMeeting(contextData.meeting ?? meetingData);
-        setDocuments(contextData.documents);
-        setSynthesizedBrief(contextData.synthesizedBrief);
-        setKeyFacts(contextData.keyFacts);
-        setMissingCategories(contextData.missingCategories ?? []);
+        setMeeting(contextData?.meeting ?? meetingData);
+        setDocuments(contextData?.documents ?? []);
+        setSynthesizedBrief(contextData?.synthesizedBrief);
+        setKeyFacts(contextData?.keyFacts ?? []);
+        setMissingCategories(contextData?.missingCategories ?? []);
         setError(null);
         setIsLoading(false);
       })

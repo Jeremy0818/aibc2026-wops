@@ -216,6 +216,18 @@ export function DocumentUploadCard({
         ) : null}
       </div>
 
+      {!mockMode ? (
+        <div className="mt-4 rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-4 text-xs leading-relaxed text-[#5c5852]">
+          <div className="flex items-center gap-2 font-medium text-[#1f1e1c]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#d95d39]" />
+            <span>Document brief upload & extraction coming in Sprint B3</span>
+          </div>
+          <p className="mt-1">
+            In Live Mode during Sprint B2, meeting metadata, scheduling, and participant access control are persisted in Firestore. Switch to Demo Mode to test full document upload, fact extraction, and citation workflows.
+          </p>
+        </div>
+      ) : null}
+
       {/* Accessible Dropzone + Native File Picker — Authorized Team Lead Only */}
       {isLeadPersona ? (
         <div

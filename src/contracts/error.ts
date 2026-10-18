@@ -3,6 +3,8 @@ import { z } from "zod";
 export const ApiErrorCodeSchema = z.enum([
   "BAD_REQUEST",
   "VALIDATION_ERROR",
+  "UNAUTHORIZED",
+  "FORBIDDEN",
   "NOT_FOUND",
   "CONFLICT",
   "INVALID_STAGE_TRANSITION",

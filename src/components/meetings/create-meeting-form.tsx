@@ -263,6 +263,17 @@ export function CreateMeetingForm() {
             description="Drop in the client brief PDF. WOPS! extracts goals, audience, budget boundaries, and guardrails with exact citations."
           />
           <div className="mt-5">
+            {!mockMode ? (
+              <div className="mb-4 rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-4 text-xs leading-relaxed text-[#5c5852]">
+                <div className="flex items-center gap-2 font-medium text-[#1f1e1c]">
+                  <span className="inline-block h-2 w-2 rounded-full bg-[#d95d39]" />
+                  <span>Live Mode Notice: Document brief upload is arriving in Sprint B3</span>
+                </div>
+                <p className="mt-1">
+                  In Sprint B2, meeting metadata, schedules, and team member assignments are persisted directly in Firestore. To preview PDF document fact extraction and grounded citations today, switch to Demo Mode.
+                </p>
+              </div>
+            ) : null}
             <ClientDocumentsPicker
               queue={setup.queue}
               canEditSelection={!formDisabled}

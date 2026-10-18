@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { authenticateRequest, AuthenticationError, createAuthErrorResponse } from "@/lib/server/auth";
 import { getUserProfile, upsertUserProfile } from "@/lib/server/user-profile";
 
@@ -10,6 +10,7 @@ import { getUserProfile, upsertUserProfile } from "@/lib/server/user-profile";
  * - Valid token -> HTTP 200 with user profile
  */
 export async function GET(request: Request) {
+  await connection();
   try {
     const authUser = await authenticateRequest(request);
     let profile = await getUserProfile(authUser.uid);
