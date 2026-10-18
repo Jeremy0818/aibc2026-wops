@@ -1,0 +1,86 @@
+# Firebase App Hosting Configuration
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  cpu: 1
+  memoryMiB: 1024
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+
+env:
+  - variable: GCP_PROJECT_ID
+    value: "wops-ai-2026"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: GOOGLE_CLOUD_PROJECT
+    value: "wops-ai-2026"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: GCP_REGION
+    value: "asia-southeast2"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: FIRESTORE_DATABASE_ID
+    value: "(default)"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: GCS_BUCKET_NAME
+    value: "wops-ai-2026.firebasestorage.app"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: GEMINI_LIVE_MODEL
+    value: "models/gemini-2.5-flash-native-audio-latest"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: ALLOW_DEV_LIVE_TOKEN
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "wops-ai-2026"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "wops-ai-2026.firebaseapp.com"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "wops-ai-2026.firebasestorage.app"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyDqutE64gLJAJoaJ4NcDQjmJxtZfoPt-5I"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:414758674495:web:2511083677a9ba557cd88a"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - RUNTIME
