@@ -22,6 +22,10 @@ import {
   mockUpdateDocumentFact,
   mockUploadMeetingDocument,
 } from "./mock-meetings";
+import {
+  isDevLiveContextBridgeActive,
+  getDevLiveContextFixture,
+} from "./dev-context-bridge";
 
 export const MAX_PDF_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB limit
 
@@ -378,6 +382,11 @@ export async function getMeetingContext(
       });
     }
     return mockContext;
+  }
+
+  // Development-Only Context Bridge (Active only in development with explicit testing flag for KOVA fixture)
+  if (isDevLiveContextBridgeActive(trimmedMeetingId)) {
+    return getDevLiveContextFixture(trimmedMeetingId);
   }
 
   let response: Response;

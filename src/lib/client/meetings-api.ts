@@ -19,6 +19,10 @@ import {
   mockGetMeetingById,
   mockListMeetings,
 } from "./mock-meetings";
+import {
+  isDevLiveContextBridgeActive,
+  getDevLiveMeetingFixture,
+} from "./dev-context-bridge";
 
 const ListMeetingsResponseSchema = z.object({
   meetings: z.array(MeetingSchema),
@@ -219,6 +223,11 @@ export async function getMeetingById(meetingId: string): Promise<Meeting> {
       });
     }
     return mockMeeting;
+  }
+
+  // Development-Only Context Bridge (Active only in development with explicit testing flag for KOVA fixture)
+  if (isDevLiveContextBridgeActive(trimmedId)) {
+    return getDevLiveMeetingFixture(trimmedId);
   }
 
   let response: Response;

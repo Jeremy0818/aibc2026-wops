@@ -24,6 +24,7 @@ import { usePreparationCall } from "@/hooks/use-preparation-call";
 import { IncomingCallModal } from "@/components/voice/incoming-call-modal";
 import { ActiveCallScreen } from "@/components/voice/active-call-screen";
 import { CallSummaryView } from "@/components/voice/call-summary-view";
+import { isDevLiveContextBridgeActive } from "@/lib/client/dev-context-bridge";
 
 interface EmployeePrepareViewProps {
   meetingId: string;
@@ -85,9 +86,17 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
     [meetingId]
   );
 
+  const approvedFacts = useMemo(() => {
+    return keyFacts.map((f) => ({
+      category: f.category,
+      statement: f.statement,
+    }));
+  }, [keyFacts]);
+
   const callState = usePreparationCall({
     meeting: meeting ?? fallbackMeeting,
     participant: activeEmployee,
+    approvedFacts,
   });
 
   if (isLoading) {
@@ -131,6 +140,8 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
     (d) => d.processingStatus === "ready"
   );
 
+  const isDevContextBridge = isDevLiveContextBridgeActive(meetingId);
+
   // Active Call Screen view
   if (
     callState.lifecycleState === "active" ||
@@ -167,6 +178,11 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
             transcripts={callState.transcripts}
             micStatus={callState.micStatus}
             micErrorMessage={callState.micErrorMessage}
+            isLiveMode={callState.isLiveMode}
+            isDevContextBridge={isDevContextBridge}
+            userAudioLevel={callState.userAudioLevel}
+            geminiAudioLevel={callState.geminiAudioLevel}
+            liveDiagnostics={callState.liveDiagnostics}
             onToggleMute={callState.toggleMute}
             onSendResponse={callState.sendSimulatedResponse}
             onEndCall={callState.endCall}
@@ -199,6 +215,9 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
             meeting={meeting}
             participant={activeEmployee}
             session={callState.session}
+            transcripts={callState.transcripts}
+            isLiveMode={callState.isLiveMode}
+            isDevContextBridge={isDevContextBridge}
             onResetCall={callState.resetCall}
           />
         )}
@@ -208,6 +227,24 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
 
   return (
     <div className="space-y-6 pb-8">
+      {/* Development Context Bridge Persistent Label */}
+      {isDevContextBridge && (
+        <div
+          role="status"
+          className="rounded-2xl border border-indigo-200 bg-indigo-50/90 px-4 py-3 text-xs text-indigo-950 flex flex-wrap items-center justify-between gap-2 shadow-2xs"
+        >
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+            <span className="font-semibold">
+              Development context — KOVA demo data. Real Gemini voice; meeting data is simulated.
+            </span>
+          </div>
+          <span className="rounded-full bg-indigo-100 border border-indigo-200 px-2 py-0.5 text-[10px] font-mono font-medium text-indigo-800">
+            DEV CONTEXT BRIDGE
+          </span>
+        </div>
+      )}
+
       {/* Incoming Call Modal Overlay */}
       {callState.lifecycleState === "incoming" && activeEmployee && (
         <IncomingCallModal
@@ -472,7 +509,7 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
 
               {mockMode ? (
                 <>
-                  {/* Call Trigger Button */}
+                  {/* Call Trigger Button (Demo Mode) */}
                   <button
                     type="button"
                     onClick={callState.triggerIncomingCall}
@@ -484,25 +521,27 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
                   </button>
 
                   <p className="text-center text-[11px] text-[#8a847c]">
-                    Demo mode · Simulates the proactive 1-on-1 preparation call for your role. Real Gemini Live audio connects in production.
+                    Demo mode · Simulates the proactive 1-on-1 preparation call for your role.
                   </p>
                 </>
               ) : (
-                <div className="rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-4 text-xs text-[#5c5852]">
-                  <p className="font-semibold text-[#1f1e1c]">
-                    Live Voice API Pending Backend Integration
-                  </p>
-                  <p className="mt-1 leading-relaxed">
-                    Live WebRTC / WebSocket transport for Gemini Live is awaiting backend implementation by Developer B. To test the complete voice call experience, prompt flows, and decision extraction, switch to Demo Mode.
-                  </p>
+                <>
+                  {/* Call Trigger Button (Live Mode) */}
                   <button
                     type="button"
-                    onClick={() => toggleMockMode(true)}
-                    className="mt-3 inline-flex min-h-10 items-center justify-center rounded-full bg-[#d95d39] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#c34e2c]"
+                    onClick={callState.triggerIncomingCall}
+                    disabled={!activeEmployee}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#2e6b54] px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#255744] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2e6b54]"
                   >
-                    Enable Demo Mode to Test Preparation Call
+                    <span aria-hidden="true">🎙️</span>
+                    <span>Start live voice preparation as {activeRoleTitle}</span>
                   </button>
-                </div>
+
+                  <div className="flex items-center justify-center gap-2 text-center text-[11px] text-[#5c5852]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Live Mode · Real-time bidirectional voice with Gemini 2.5 Native Audio</span>
+                  </div>
+                </>
               )}
 
               {/* Declined Call Notice */}
@@ -511,7 +550,7 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
                   role="status"
                   className="rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-3 text-center text-xs text-[#5c5852]"
                 >
-                  <span>You declined the previous incoming call. Click above whenever you&apos;re ready to simulate the call again.</span>
+                  <span>You declined the previous incoming call. Click above whenever you&apos;re ready to begin the call again.</span>
                 </div>
               )}
 
@@ -521,17 +560,15 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
                   role="alert"
                   className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700"
                 >
-                  <p className="font-semibold">Call initialization error</p>
+                  <p className="font-semibold">Call connection error</p>
                   <p className="mt-0.5">{callState.error}</p>
-                  {mockMode && (
-                    <button
-                      type="button"
-                      onClick={callState.triggerIncomingCall}
-                      className="mt-2 font-semibold text-red-800 underline"
-                    >
-                      Retry call simulation
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={callState.triggerIncomingCall}
+                    className="mt-2 font-semibold text-red-800 underline block"
+                  >
+                    Retry call connection
+                  </button>
                 </div>
               )}
             </div>
