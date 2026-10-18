@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "deploy": "git push fork HEAD:integration/backend-unification && firebase apphosting:rollouts:create aibc2026-wops --git-branch integration/backend-unification --project wops-ai-2026 --force",
+    "deploy": "firebase deploy --only apphosting --project wops-ai-2026",
     "deploy:git": "git push fork HEAD:integration/backend-unification"
   },
   "dependencies": {
