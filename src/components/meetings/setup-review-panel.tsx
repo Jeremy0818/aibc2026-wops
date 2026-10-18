@@ -28,6 +28,7 @@ export function SetupReviewPanel({
   finalizeError,
   onReloadContext,
   onFinalizeSetup,
+  isLiveMode = false,
 }: {
   phase: SetupPhase;
   meeting: Meeting | null;
@@ -39,9 +40,23 @@ export function SetupReviewPanel({
   finalizeError?: WopsApiClientError | null;
   onReloadContext: () => void;
   onFinalizeSetup?: () => void;
+  isLiveMode?: boolean;
 }) {
   /* Before a draft exists: explain what will happen, never preview fake facts. */
   if (!meeting) {
+    if (isLiveMode) {
+      return (
+        <div className="rounded-2xl border border-dashed border-[#ebe6dd] bg-[#faf9f6] p-4">
+          <p className="text-sm font-medium text-[#1f1e1c]">
+            Document extraction arrives in Sprint B3
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
+            In Sprint B2, creating a meeting persists your meeting details, schedule, and assigned teammates directly to Firestore.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-2xl border border-dashed border-[#ebe6dd] bg-[#faf9f6] p-4">
         <p className="text-sm font-medium text-[#1f1e1c]">
@@ -88,7 +103,9 @@ export function SetupReviewPanel({
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-medium text-[#1f1e1c]">
-            {isFinalized
+            {isLiveMode
+              ? "✓ Meeting created · saved to Firestore"
+              : isFinalized
               ? "✓ Brief confirmed — ready for teammate preparation!"
               : inProgress
               ? `Draft created · uploading documents (${readyCount + failedCount}/${sent.length})…`
@@ -100,17 +117,19 @@ export function SetupReviewPanel({
           </p>
           <span
             className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-              isFinalized
+              isFinalized || isLiveMode
                 ? "bg-[#1f6a47] text-white"
                 : "border border-[#ebe6dd] bg-white text-[#5c5852]"
             }`}
           >
-            {isFinalized ? "Ready" : "Draft"}
+            {isFinalized ? "Ready" : isLiveMode ? "Saved" : "Draft"}
           </span>
         </div>
 
         <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
-          {isFinalized
+          {isLiveMode
+            ? `Your meeting is saved with ${meeting.participants.length} assigned ${meeting.participants.length === 1 ? "participant" : "participants"}. Document upload arrives in Sprint B3.`
+            : isFinalized
             ? "Teammates can now run 1-on-1 AI preparation calls grounded in these facts."
             : failedCount > 0
             ? "The meeting draft is saved. Retry failed documents above — successfully grounded facts are kept."
@@ -147,7 +166,15 @@ export function SetupReviewPanel({
       {/* Action Bar */}
       {!inProgress ? (
         <div className="flex flex-col gap-3 border-t border-[#ebe6dd] pt-4 sm:flex-row sm:items-center sm:justify-between">
-          {!isFinalized ? (
+          {isLiveMode ? (
+            <Link
+              href={`/meetings/${encodeURIComponent(meeting.id)}`}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#d95d39] px-6 text-sm font-medium text-white shadow-xs transition hover:bg-[#c34e2c]"
+            >
+              <span>View meeting details</span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          ) : !isFinalized ? (
             <button
               type="button"
               onClick={onFinalizeSetup}
@@ -179,10 +206,10 @@ export function SetupReviewPanel({
           )}
 
           <Link
-            href={`/meetings/${encodeURIComponent(meeting.id)}`}
+            href="/meetings"
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-5 text-sm font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea]"
           >
-            Meeting details →
+            All meetings
           </Link>
         </div>
       ) : null}

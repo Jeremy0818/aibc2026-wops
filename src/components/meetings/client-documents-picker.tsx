@@ -53,6 +53,7 @@ export function ClientDocumentsPicker({
   onRemove,
   onRetry,
   onAddSample,
+  isLiveMode = false,
 }: {
   queue: QueuedFile[];
   canEditSelection: boolean;
@@ -61,6 +62,7 @@ export function ClientDocumentsPicker({
   onRemove: (localId: string) => void;
   onRetry: (localId: string) => void;
   onAddSample?: () => void;
+  isLiveMode?: boolean;
 }) {
   const inputId = useId();
   const hintId = useId();
@@ -70,7 +72,7 @@ export function ClientDocumentsPicker({
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    if (!canEditSelection) return;
+    if (!canEditSelection || isLiveMode) return;
     if (event.dataTransfer.files.length > 0) {
       onAddFiles(event.dataTransfer.files);
     }
@@ -103,7 +105,23 @@ export function ClientDocumentsPicker({
         ))}
       </div>
 
-      {canEditSelection ? (
+      {isLiveMode ? (
+        <div className="rounded-2xl border border-dashed border-[#ebe6dd] bg-[#faf9f6] p-6 text-center">
+          <div
+            aria-hidden="true"
+            className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-base text-[#8a847b] shadow-2xs"
+          >
+            ✦
+          </div>
+          <p className="mt-2 text-sm font-medium text-[#1f1e1c]">
+            Document upload &amp; Gemini extraction arriving in Sprint B3
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
+            In Sprint B2 Live Mode, meeting metadata and team assignments are persisted directly to Firestore.
+            Switch to Demo Mode to test full PDF brief upload and grounded fact extraction.
+          </p>
+        </div>
+      ) : canEditSelection ? (
         <div
           onDragOver={(e) => {
             e.preventDefault();

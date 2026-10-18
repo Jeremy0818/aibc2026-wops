@@ -90,7 +90,7 @@ export function DocumentUploadCard({
     file: File | undefined,
     options?: { simulateOutcome?: "ready" | "failed" | "empty_facts" }
   ) => {
-    if (!file || isBusy) return;
+    if (!file || isBusy || !mockMode) return;
     setValidationError(null);
 
     const validation = validatePdfFile(file);
@@ -228,8 +228,8 @@ export function DocumentUploadCard({
         </div>
       ) : null}
 
-      {/* Accessible Dropzone + Native File Picker — Authorized Team Lead Only */}
-      {isLeadPersona ? (
+      {/* Accessible Dropzone + Native File Picker — Authorized Team Lead Only in Demo Mode */}
+      {isLeadPersona && mockMode ? (
         <div
           role="button"
           tabIndex={isBusy ? -1 : 0}

@@ -18,6 +18,7 @@ import {
   updateDocumentFact,
   uploadMeetingDocument,
 } from "@/lib/client/documents-api";
+import { isMockModeEnabled } from "@/lib/client/mock-meetings";
 import {
   checkDraftAgainstContract,
   classifySelectedFile,
@@ -92,7 +93,7 @@ export function useDocumentFirstSetup() {
 
   const addFiles = useCallback(
     (files: FileList | File[]) => {
-      if (hasDraft || isLocked) return;
+      if (hasDraft || isLocked || !isMockModeEnabled()) return;
       const incoming = Array.from(files);
       setQueue((prev) => {
         const seen = new Set(prev.map((item) => item.fingerprint));
@@ -218,6 +219,16 @@ export function useDocumentFirstSetup() {
           setFieldErrors(apiErrors);
         }
         setPhase("draft_failed");
+        inFlightRef.current = false;
+        return;
+      }
+
+      if (!isMockModeEnabled()) {
+        // In Sprint B2 Live Mode:
+        // Meeting metadata and assigned participants are successfully persisted to Firestore.
+        // Document brief upload, GCS storage, and Gemini extraction arrive in Sprint B3.
+        // Complete the creation workflow without attempting upload or /context calls.
+        setPhase("review");
         inFlightRef.current = false;
         return;
       }

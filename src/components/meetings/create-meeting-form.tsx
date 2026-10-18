@@ -276,12 +276,13 @@ export function CreateMeetingForm() {
             ) : null}
             <ClientDocumentsPicker
               queue={setup.queue}
-              canEditSelection={!formDisabled}
-              canRetry={hasDraft && phase === "review"}
-              onAddFiles={setup.addFiles}
+              canEditSelection={mockMode && !formDisabled}
+              canRetry={mockMode && hasDraft && phase === "review"}
+              onAddFiles={mockMode ? setup.addFiles : () => {}}
               onRemove={setup.removeFile}
               onRetry={(id) => void setup.retryFile(id)}
               onAddSample={mockMode && !formDisabled ? addSampleKovaPdf : undefined}
+              isLiveMode={!mockMode}
             />
           </div>
         </section>
@@ -421,6 +422,7 @@ export function CreateMeetingForm() {
                 setup.meeting ? void setup.refreshContext(setup.meeting.id) : undefined
               }
               onFinalizeSetup={() => void setup.finalizeSetup()}
+              isLiveMode={!mockMode}
             />
           </div>
         </section>
@@ -455,7 +457,7 @@ export function CreateMeetingForm() {
               ) : (
                 <>
                   <span>
-                    {selectableCount > 0
+                    {mockMode && selectableCount > 0
                       ? `Create meeting & upload ${selectableCount} ${selectableCount === 1 ? "document" : "documents"}`
                       : "Create meeting draft"}
                   </span>

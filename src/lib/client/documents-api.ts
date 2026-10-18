@@ -14,6 +14,7 @@ import {
   type UpdateDocumentFactRequest,
 } from "@/contracts/document";
 import { ApiErrorSchema } from "@/contracts/error";
+import { authenticatedFetch } from "./api-client";
 import { WopsApiClientError } from "./meetings-api";
 import {
   isMockModeEnabled,
@@ -29,7 +30,7 @@ import {
 
 export const MAX_PDF_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB limit
 
-const UploadDocumentResponseSchema = z.object({
+export const UploadDocumentResponseSchema = z.object({
   document: DocumentMetadataSchema,
 });
 
@@ -170,52 +171,15 @@ export async function uploadMeetingDocument(
     }
   }
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("type", docType);
-
-  let response: Response;
-  try {
-    response = await fetch(
-      `/api/meetings/${encodeURIComponent(trimmedMeetingId)}/documents`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-        },
-        body: formData,
-      }
-    );
-  } catch (err) {
-    throw new WopsApiClientError({
-      message:
-        err instanceof Error
-          ? `Network error while uploading PDF to /api/meetings/${trimmedMeetingId}/documents: ${err.message}`
-          : `Network error while uploading PDF to /api/meetings/${trimmedMeetingId}/documents`,
-      status: 0,
-      code: "NETWORK_ERROR",
-    });
-  }
-
-  if (!response.ok) {
-    throw await parseErrorResponse(response);
-  }
-
-  const rawJson: unknown = await response.json();
-  const parsed = UploadDocumentResponseSchema.safeParse(rawJson);
-  if (!parsed.success) {
-    throw new WopsApiClientError({
-      message: `Invalid response schema from POST /api/meetings/${trimmedMeetingId}/documents`,
-      status: response.status,
-      code: "SCHEMA_ERROR",
-      details: parsed.error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      })),
-    });
-  }
-
-  return parsed.data.document;
+  // Sprint B2 Live Mode Boundary:
+  // Real document ingestion and Cloud Storage uploads are scheduled for Sprint B3.
+  // Fails fast with 409 CONFLICT without firing unnecessary or unsupported network requests.
+  throw new WopsApiClientError({
+    message:
+      "Document ingestion is unavailable in Sprint B2. Cloud Storage upload and Gemini extraction will be enabled in Sprint B3.",
+    status: 409,
+    code: "CONFLICT",
+  });
 }
 
 /**
@@ -391,7 +355,7 @@ export async function getMeetingContext(
 
   let response: Response;
   try {
-    response = await fetch(
+    response = await authenticatedFetch(
       `/api/meetings/${encodeURIComponent(trimmedMeetingId)}/context`,
       {
         method: "GET",
