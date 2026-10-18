@@ -15,10 +15,15 @@ import {
   formatFileSize,
   formatIdr,
 } from "@/lib/client/formatters";
+import type { Meeting } from "@/contracts/meeting";
 import {
   getAssignedEmployeesForMeeting,
   getRolePreparationProfile,
 } from "@/lib/client/role-preparation";
+import { usePreparationCall } from "@/hooks/use-preparation-call";
+import { IncomingCallModal } from "@/components/voice/incoming-call-modal";
+import { ActiveCallScreen } from "@/components/voice/active-call-screen";
+import { CallSummaryView } from "@/components/voice/call-summary-view";
 
 interface EmployeePrepareViewProps {
   meetingId: string;
@@ -41,7 +46,6 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
   } = useMeetingDetail(meetingId);
 
   const [overrideRole, setOverrideRole] = useState<string | null>(null);
-  const [showVoiceComingSoon, setShowVoiceComingSoon] = useState(false);
 
   const assignedEmployees = useMemo(() => {
     if (!meeting) return [];
@@ -59,6 +63,32 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
     }
     return assignedEmployees[0];
   }, [assignedEmployees, overrideRole, roleParam]);
+
+  const fallbackMeeting: Meeting = useMemo(
+    () => ({
+      id: meetingId,
+      title: "Meeting Preparation",
+      clientName: "Client",
+      projectName: "Project",
+      scheduledAt: new Date().toISOString(),
+      meetingObjective: "Preparation",
+      leadRole: "Team Lead",
+      participants: [],
+      status: "draft",
+      documentIds: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      clientRequirements: [],
+      constraints: [],
+      contextVersion: 1,
+    }),
+    [meetingId]
+  );
+
+  const callState = usePreparationCall({
+    meeting: meeting ?? fallbackMeeting,
+    participant: activeEmployee,
+  });
 
   if (isLoading) {
     return (
@@ -100,10 +130,93 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
   const readyDocuments = documents.filter(
     (d) => d.processingStatus === "ready"
   );
-  const isBriefGrounded = readyDocuments.length > 0;
+
+  // Active Call Screen view
+  if (
+    callState.lifecycleState === "active" ||
+    callState.lifecycleState === "accepted" ||
+    callState.lifecycleState === "ending"
+  ) {
+    return (
+      <div className="space-y-6 pb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => void callState.endCall()}
+            className="inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-[#5c5852] transition hover:text-[#1f1e1c]"
+          >
+            ← Conclude Call &amp; Return to Overview
+          </button>
+          <span className="rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-3 py-1 text-xs font-medium text-[#b44322]">
+            Active Call · {activeRoleTitle}
+          </span>
+        </div>
+
+        {activeEmployee && (
+          <ActiveCallScreen
+            meeting={meeting}
+            participant={activeEmployee}
+            lifecycleState={callState.lifecycleState}
+            visualState={callState.visualState}
+            isMuted={callState.isMuted}
+            callDurationSeconds={callState.callDurationSeconds}
+            currentStage={callState.currentStage}
+            currentTurnIndex={callState.currentTurnIndex}
+            totalTurns={callState.totalTurns}
+            currentScriptedTurn={callState.currentScriptedTurn}
+            transcripts={callState.transcripts}
+            micStatus={callState.micStatus}
+            micErrorMessage={callState.micErrorMessage}
+            onToggleMute={callState.toggleMute}
+            onSendResponse={callState.sendSimulatedResponse}
+            onEndCall={callState.endCall}
+            onTestMicrophone={callState.testMicrophone}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Completed Call Summary view
+  if (callState.lifecycleState === "completed") {
+    return (
+      <div className="space-y-6 pb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={callState.resetCall}
+            className="inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-[#5c5852] transition hover:text-[#1f1e1c]"
+          >
+            ← Back to Preparation Overview
+          </button>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+            Call Completed
+          </span>
+        </div>
+
+        {activeEmployee && (
+          <CallSummaryView
+            meeting={meeting}
+            participant={activeEmployee}
+            session={callState.session}
+            onResetCall={callState.resetCall}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-8">
+      {/* Incoming Call Modal Overlay */}
+      {callState.lifecycleState === "incoming" && activeEmployee && (
+        <IncomingCallModal
+          meeting={meeting}
+          participant={activeEmployee}
+          onAccept={callState.acceptCall}
+          onDecline={callState.declineCall}
+        />
+      )}
       {/* Breadcrumb & Role Badge */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
@@ -131,18 +244,16 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                  Demo Employee Role Switcher
+                  Demo Persona Switcher (Testing Only)
                 </span>
-                {mockMode && (
-                  <span className="text-[11px] text-[#8a847b]">
-                    Same shared brief · Role-specific AI focus
-                  </span>
-                )}
+                <span className="text-[11px] text-[#8a847b]">
+                  Not real authentication · Simulates assigned role login
+                </span>
               </div>
               <p className="mt-1 text-xs text-[#5c5852]">
-                Switch between assigned team members on this meeting to see how
+                Switch between assigned team members on this meeting to test how
                 WOPS! adapts the AI thinking partner to each role without
-                changing or re-uploading the shared client brief.
+                changing the shared brief. In production, each employee accesses their preparation call via their authenticated identity.
               </p>
             </div>
           </div>
@@ -162,7 +273,6 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
                   type="button"
                   onClick={() => {
                     setOverrideRole(emp.role);
-                    setShowVoiceComingSoon(false);
                   }}
                   aria-pressed={isSelected}
                   className={`min-h-10 rounded-full px-3.5 py-2 text-xs font-medium transition ${
@@ -350,58 +460,80 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
               </p>
             </div>
 
-            {/* Primary CTA + Honest Coming Soon State for Gemini Live */}
+            {/* Primary CTA + Proactive Call Simulation */}
             <div className="mt-5 space-y-3 border-t border-[#ebe6dd] pt-4">
-              <button
-                type="button"
-                onClick={() => setShowVoiceComingSoon((prev) => !prev)}
-                aria-expanded={showVoiceComingSoon}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 py-3 text-sm font-medium text-white shadow-xs transition hover:bg-[#c34e2c]"
-              >
-                <svg
-                  className="h-4 w-4 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-                  />
-                </svg>
-                <span>Start AI Preparation as {activeRoleTitle}</span>
-              </button>
+              {/* Draft Status Advisory */}
+              {meeting.status === "draft" && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900">
+                  <p className="font-semibold">Notice: Meeting setup is in draft</p>
+                  <p className="mt-0.5 text-amber-800">
+                    The Team Lead has not yet confirmed the final shared brief. In Live API mode, preparation begins once setup is finalized. For testing, you can simulate your role call now.
+                  </p>
+                </div>
+              )}
 
-              {showVoiceComingSoon && (
+              {mockMode ? (
+                <>
+                  {/* Call Trigger Button */}
+                  <button
+                    type="button"
+                    onClick={callState.triggerIncomingCall}
+                    disabled={!activeEmployee}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#c34e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
+                  >
+                    <span aria-hidden="true">📞</span>
+                    <span>Simulate Incoming AI Call as {activeRoleTitle}</span>
+                  </button>
+
+                  <p className="text-center text-[11px] text-[#8a847c]">
+                    Sprint A3a Demo · Simulates proactive in-app call with deterministic role sparring. Real Gemini Live audio will connect in backend sprint.
+                  </p>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-4 text-xs text-[#5c5852]">
+                  <p className="font-semibold text-[#1f1e1c]">
+                    Live Voice API Pending Backend Integration
+                  </p>
+                  <p className="mt-1 leading-relaxed">
+                    Live WebRTC / WebSocket transport for Gemini Live is awaiting backend implementation by Developer B. To test the complete voice call experience, prompt flows, and decision extraction, switch to Demo Mode.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => toggleMockMode(true)}
+                    className="mt-3 inline-flex min-h-10 items-center justify-center rounded-full bg-[#d95d39] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#c34e2c]"
+                  >
+                    Enable Demo Mode to Test Preparation Call
+                  </button>
+                </div>
+              )}
+
+              {/* Declined Call Notice */}
+              {callState.lifecycleState === "declined" && (
                 <div
                   role="status"
-                  aria-live="polite"
-                  className="rounded-2xl border border-[#f5d5c8] bg-[#fdf1ec]/80 p-4 text-xs leading-relaxed text-[#1f1e1c]"
+                  className="rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-3 text-center text-xs text-[#5c5852]"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-[#b44322]">
-                      Gemini Live Voice Call · Coming in Sprint A3
-                    </p>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-[#5c5852]">
-                      Preview
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-[#5c5852]">
-                    Real-time bidirectional voice sessions via{" "}
-                    <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] text-[#1f1e1c]">
-                      POST /api/meetings/{meeting.id}/sessions
-                    </code>{" "}
-                    will connect here in Sprint A3. Your shared{" "}
-                    <strong>{meeting.clientName}</strong> brief (
-                    {isBriefGrounded
-                      ? `${readyDocuments.length} grounded PDF ${readyDocuments.length === 1 ? "document" : "documents"}`
-                      : "meeting objectives and guardrails"}
-                    ) and your role profile as{" "}
-                    <strong>{activeRoleTitle}</strong> are ready for the call.
-                  </p>
+                  <span>You declined the previous incoming call. Click above whenever you&apos;re ready to simulate the call again.</span>
+                </div>
+              )}
+
+              {/* Failed Call Notice */}
+              {callState.lifecycleState === "failed" && callState.error && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700"
+                >
+                  <p className="font-semibold">Call initialization error</p>
+                  <p className="mt-0.5">{callState.error}</p>
+                  {mockMode && (
+                    <button
+                      type="button"
+                      onClick={callState.triggerIncomingCall}
+                      className="mt-2 font-semibold text-red-800 underline"
+                    >
+                      Retry call simulation
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -88,8 +88,8 @@ export function PrepareHubView() {
         }
       />
 
-      {/* Demo Perspective Switcher (clearly labeled because MVP has no auth) */}
-      {meetings.length > 0 && availableRoles.length > 0 && (
+      {/* Demo Perspective Switcher (explicitly labelled Demo Mode) */}
+      {meetings.length > 0 && availableRoles.length > 0 && mockMode && (
         <section
           aria-label="Demo employee perspective selector"
           className="wops-warm-card rounded-3xl p-4 sm:p-5"
@@ -98,13 +98,11 @@ export function PrepareHubView() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                  Demo Perspective Switcher
+                  Demo Employee Switcher
                 </span>
-                {mockMode && (
-                  <span className="text-[11px] text-[#8a847b]">
-                    No login required in MVP
-                  </span>
-                )}
+                <span className="rounded-full bg-[#f4f1ea] px-2 py-0.5 text-[10px] font-semibold text-[#5c5852]">
+                  Demo Mode Only
+                </span>
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-[#5c5852]">
                 Switch between assigned team members to see how WOPS! keeps the
@@ -157,6 +155,26 @@ export function PrepareHubView() {
               );
             })}
           </div>
+        </section>
+      )}
+
+      {/* Live API Mode Authentication Disclaimer */}
+      {!mockMode && (
+        <section
+          aria-label="Live API authentication status"
+          className="rounded-3xl border border-[#ebe6dd] bg-[#faf9f6] p-4 text-xs text-[#5c5852]"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-[#1f1e1c]">
+              Live API Mode · Identity &amp; Assignment Status
+            </span>
+            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800">
+              Auth Pending (Developer B)
+            </span>
+          </div>
+          <p className="mt-1 leading-relaxed">
+            Backend user authentication (JWT/Session) is not yet implemented by Developer B. In production, only meetings assigned to your authenticated user identity will appear. Currently displaying meetings available in this environment.
+          </p>
         </section>
       )}
 
