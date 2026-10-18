@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMockMode } from "@/hooks/use-meetings";
+import { useAuth } from "@/hooks/use-auth";
 
 const DESTINATIONS = [
   {
@@ -98,6 +99,16 @@ const DESTINATIONS = [
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { mockMode, toggleMockMode } = useMockMode();
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    error: authError,
+    isConfigured: authConfigured,
+    signInWithGoogle,
+    signOut,
+    clearError,
+  } = useAuth();
 
   const isNavActive = (href: string, matchExact: boolean) => {
     if (matchExact) return pathname === href;
@@ -155,27 +166,107 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          {/* Subtle Mode Switch (Preserves Mock / Live toggle) */}
-          <button
-            type="button"
-            onClick={() => toggleMockMode()}
-            aria-pressed={mockMode}
-            title="Switch between KOVA demo mode and Live backend API"
-            className={`inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] ${
-              mockMode
-                ? "border-[#f5d5c8] bg-[#fdf1ec] text-[#b44322] hover:bg-[#fae5dc]"
-                : "border-[#ebe6dd] bg-white text-[#5c5852] hover:bg-[#f4f1ea]"
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                mockMode ? "bg-[#d95d39]" : "bg-emerald-600"
+          {/* Top Actions: Mode Switch & Google Auth */}
+          <div className="flex items-center gap-2">
+            {/* Subtle Mode Switch (Preserves Mock / Live toggle) */}
+            <button
+              type="button"
+              onClick={() => toggleMockMode()}
+              aria-pressed={mockMode}
+              title="Switch between KOVA demo mode and Live backend API"
+              className={`inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] ${
+                mockMode
+                  ? "border-[#f5d5c8] bg-[#fdf1ec] text-[#b44322] hover:bg-[#fae5dc]"
+                  : "border-[#ebe6dd] bg-white text-[#5c5852] hover:bg-[#f4f1ea]"
               }`}
-            />
-            <span>{mockMode ? "Demo mode" : "Live API"}</span>
-          </button>
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  mockMode ? "bg-[#d95d39]" : "bg-emerald-600"
+                }`}
+              />
+              <span>{mockMode ? "Demo mode" : "Live API"}</span>
+            </button>
+
+            {/* Google Authentication Control */}
+            {authConfigured &&
+              (authLoading ? (
+                <div className="h-8 w-8 animate-pulse rounded-full bg-[#f4f1ea] border border-[#ebe6dd]" />
+              ) : user ? (
+                <div className="flex items-center gap-1.5">
+                  <div
+                    title={profile?.displayName || user.displayName || user.email || "Authenticated user"}
+                    className="flex items-center gap-1.5 rounded-full border border-[#ebe6dd] bg-white py-1 pr-2.5 pl-1 text-xs text-[#1f1e1c]"
+                  >
+                    {user.photoURL ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={user.photoURL}
+                        alt=""
+                        className="h-5 w-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#fdf1ec] text-[10px] font-bold text-[#d95d39]">
+                        {(user.displayName || user.email || "U")[0].toUpperCase()}
+                      </span>
+                    )}
+                    <span className="hidden max-w-[100px] truncate text-xs font-medium sm:inline">
+                      {profile?.displayName || user.displayName || user.email?.split("@")[0]}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void signOut()}
+                    title="Sign out of Google"
+                    className="rounded-full border border-[#ebe6dd] bg-white px-2.5 py-1 text-xs font-medium text-[#5c5852] transition hover:bg-[#f4f1ea] hover:text-[#1f1e1c]"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void signInWithGoogle()}
+                  className="inline-flex min-h-[34px] shrink-0 items-center gap-1.5 rounded-full border border-[#dcd4c6] bg-white px-3 py-1 text-xs font-medium text-[#1f1e1c] shadow-2xs transition hover:border-[#f5d5c8] hover:bg-[#fdf1ec]"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                  <span>Sign in</span>
+                </button>
+              ))}
+          </div>
         </div>
       </header>
+
+      {/* Dismissible Auth Error Banner */}
+      {authError && (
+        <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-center text-xs text-red-800 flex items-center justify-center gap-2">
+          <span>{authError}</span>
+          <button
+            type="button"
+            onClick={clearError}
+            className="text-[11px] font-bold text-red-900 underline ml-2"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Main Content Container — Sensible max-width for mobile & desktop */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-5 pb-28 sm:px-6 sm:pt-8 sm:pb-16">
