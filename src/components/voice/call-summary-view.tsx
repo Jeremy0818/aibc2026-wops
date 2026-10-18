@@ -153,15 +153,33 @@ export function CallSummaryView({
         </section>
       )}
 
-      {/* Future Proposal Notice */}
-      <div className="rounded-2xl border border-[#ebe6dd] bg-[#faf9f6] p-4 text-center text-xs text-[#8a847c]">
-        <p className="font-medium text-[#5c5852]">
-          Next Step: Team Alignment &amp; Synthesis (Sprint A4)
+      {/* Personal Proposal Action */}
+      <div className="wops-warm-card rounded-3xl p-5 text-center sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d95d39]">
+          Personal Preparation Output Ready
         </p>
-        <p className="mt-1">
-          Once other assigned team members complete their role-aware preparation calls,
-          WOPS! will synthesize all decisions into a unified proposal draft.
+        <h3 className="mt-1 text-base font-semibold text-[#1f1e1c]">
+          Your {participant.role} Thinking is Documented
+        </h3>
+        <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#5c5852]">
+          Your ideas, grounded brief citations, confirmed decisions, and meeting talking points have been synthesized into your personal preparation proposal.
         </p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href={
+              session
+                ? `/proposals/prop_${session.id}_${
+                    participant.role.toLowerCase().includes("designer")
+                      ? "designer"
+                      : "planner"
+                  }`
+                : "/proposals"
+            }
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#d95d39] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#c34e2c]"
+          >
+            View My Preparation Proposal →
+          </Link>
+        </div>
       </div>
     </div>
   );

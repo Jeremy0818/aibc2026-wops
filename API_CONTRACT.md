@@ -393,51 +393,134 @@ Completes preparation session.
 
 ---
 
-### 4.4 Campaign Proposals (Cross-Role Synthesis)
+### 4.4 Individual Preparation Proposals
+
+Each assigned employee has their own personal preparation output for each meeting they prepare for.
+WOPS! does NOT generate a unified team proposal for an entire meeting.
+The actual meeting is where employees share ideas, discuss differences, and make collective decisions.
 
 #### `POST /api/sessions/{sessionId}/proposal`
-Synthesizes proposal incorporating multi-session decisions and highlighting conflicts.
+Synthesizes the individual preparation proposal for the caller's completed session.
 
 - **Request Body (`GenerateProposalRequestSchema`):**
   ```json
   {
     "selectedConceptId": "dir_01",
-    "additionalNotes": "Keep Rp15M contingency reserve under ceiling",
-    "sessionIds": ["ses_kova_001", "ses_kova_002"]
+    "additionalNotes": "Focus on 3 PM transit corridors"
   }
   ```
-- **Response `201 Created` (`CampaignProposalSchema`):**
+- **Response `201 Created` (`PreparationProposalSchema`):**
   ```json
   {
     "proposal": {
-      "id": "prop_kova_001",
+      "id": "prop_kova_planner_001",
       "meetingId": "mtg_kova_001",
-      "sessionIds": ["ses_kova_001", "ses_kova_002"],
-      "participantContributions": [
+      "participantId": "usr_planner_01",
+      "participantRole": "Creative Campaign Planner",
+      "participantName": "Nadia Kusuma",
+      "sessionId": "ses_kova_001",
+      "title": "Campaign Strategy & Channel Allocation",
+      "summary": "Strategic preparation for KOVA Light targeting Jakarta & Surabaya commuter corridors.",
+      "status": "completed",
+      "keyIdeas": [
+        "Target MRT/KRL transit corridors during 3 PM commute slump",
+        "Adopt 'Real Taste, Lighter Pace' positioning"
+      ],
+      "directions": [
         {
-          "participantId": "usr_planner_01",
-          "participantName": "Nadia Kusuma",
-          "participantRole": "Creative Campaign Planner",
-          "decisionsCount": 4,
-          "completedPrep": true
-        },
-        {
-          "participantId": "usr_designer_01",
-          "participantName": "Bima Wijaya",
-          "participantRole": "Senior Brand Designer",
-          "decisionsCount": 3,
-          "completedPrep": true
+          "id": "dir_01",
+          "title": "3 PM Tanpa Drama",
+          "tagline": "Kopi Beneran, Gula Ringan.",
+          "summary": "Own the 3 PM commuter slump in Jakarta and Surabaya.",
+          "rationale": "Connects low-sugar spec to daily commuter habit.",
+          "isRecommended": true
         }
       ],
-      "unresolvedConflicts": [],
-      "totalBudgetIdr": 235000000
+      "recommendations": [
+        {
+          "id": "rec_01",
+          "topic": "Channel Mix",
+          "recommendation": "Rp120M creator seeding + Rp80M commuter transit hubs",
+          "rationale": "Maximizes sampling volume under Rp250M ceiling",
+          "isParticipantConfirmed": true
+        }
+      ],
+      "confirmedDecisions": [
+        {
+          "id": "dec_01",
+          "stage": "UNDERSTAND",
+          "topic": "Corridor Targeting",
+          "decision": "Prioritize MRT/KRL corridors in Jakarta and Surabaya",
+          "rationale": "High concentration of target 20-32 demographic"
+        }
+      ],
+      "sharedFacts": [
+        {
+          "id": "ref_01",
+          "sourceType": "document_fact",
+          "claimOrDecision": "5g cane sugar per 200ml can",
+          "referenceId": "fact_01",
+          "citationNote": "Page 2 — Product Specs"
+        }
+      ],
+      "talkingPoints": [
+        "Bring up MRT sampling permit timeline with account lead",
+        "Confirm Surabaya on-ground logistics team"
+      ],
+      "openQuestions": [
+        "Who manages daily inventory replenishment at sampling stations?"
+      ],
+      "assumptions": [
+        "Station sampling permits cleared within 10 business days"
+      ],
+      "risks": [
+        {
+          "risk": "Unauthorized clinical or health claims by creators",
+          "mitigation": "Strict creative briefing guardrails and pre-approval"
+        }
+      ],
+      "constraints": [
+        "Strict zero medical claims constraint"
+      ],
+      "missingInfo": [],
+      "roleSections": [
+        {
+          "title": "Channel & Budget Allocation",
+          "description": "Preliminary allocation under Rp250M ceiling",
+          "items": [
+            "TikTok Creator Partnerships: Rp120,000,000",
+            "Commuter Station Sampling: Rp80,000,000",
+            "Paid Amplification: Rp35,000,000",
+            "Contingency Buffer: Rp15,000,000"
+          ]
+        }
+      ],
+      "createdAt": "2026-10-18T04:20:00.000Z",
+      "updatedAt": "2026-10-18T04:20:00.000Z"
     }
   }
   ```
 - **Errors:** `404 NOT_FOUND`, `422 UNPROCESSABLE_ENTITY`, `502 UPSTREAM_ERROR`.
 
 #### `GET /api/proposals/{proposalId}`
-Retrieves generated proposal.
+Retrieves an individual preparation proposal by its ID.
+
+- **Response `200 OK`:** `{ "proposal": { ... } }`
+- **Errors:** `404 NOT_FOUND`.
+
+#### `GET /api/proposals`
+Lists individual preparation proposals for the authenticated employee (filter by `participantId` or `meetingId`).
+
+- **Query Parameters:**
+  - `participantId` (optional string): filter by participant identifier.
+  - `meetingId` (optional string): filter by meeting identifier.
+- **Response `200 OK`:**
+  ```json
+  {
+    "proposals": [ ... ]
+  }
+  ```
+- **Errors:** `401 UNAUTHORIZED`.
 
 ---
 
@@ -479,8 +562,9 @@ Both original uploaded client documents and extracted/confirmed facts reside wit
 | `/api/sessions` | `POST` | Assigned Employee | Start session for caller's own `participantId`. |
 | `/api/sessions/{id}/events` | `POST` | **Session Owner Only** | Append transcript or decision event to caller's session. |
 | `/api/sessions/{id}/advance` | `POST` | **Session Owner Only** | Advance caller's session through skill stages. |
-| `/api/sessions/{id}/complete` | `POST` | **Session Owner Only** | Complete caller's preparation session. |
-| `/api/sessions/{id}/proposal` | `POST` | Team Lead or Assigned Employee | Request proposal synthesis for completed sessions. |
+| `/api/sessions/{id}/proposal` | `POST` | **Session Owner Only** | Request personal preparation proposal synthesis for caller's completed session. |
+| `/api/proposals/{id}` | `GET` | **Proposal Owner Only** | Read caller's personal preparation proposal. |
+| `/api/proposals` | `GET` | Authenticated User | Read own personal preparation proposals. |
 
 ### 5.4 HTTP 403 Forbidden Specification
 

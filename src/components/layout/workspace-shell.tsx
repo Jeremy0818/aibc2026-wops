@@ -71,6 +71,28 @@ const DESTINATIONS = [
       </svg>
     ),
   },
+  {
+    label: "My Proposals",
+    href: "/proposals",
+    matchExact: false,
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        className="h-4 w-4"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M4.5 3.5h11a1 1 0 011 1v11a1 1 0 01-1 1h-11a1 1 0 01-1-1v-11a1 1 0 011-1z"
+        />
+        <path strokeLinecap="round" d="M7.5 7.5h5M7.5 10.5h5M7.5 13.5h3" />
+      </svg>
+    ),
+  },
 ];
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {

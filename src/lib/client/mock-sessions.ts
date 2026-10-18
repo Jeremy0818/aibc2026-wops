@@ -9,6 +9,7 @@ import {
   type SkillStage,
   type TranscriptEvent,
 } from "@/contracts/session";
+import { mockGenerateProposalForCompletedSession } from "./mock-proposals";
 
 const SESSIONS_STORAGE_KEY = "wops:mock_sessions_v1";
 
@@ -332,5 +333,9 @@ export function mockCompleteSession(
 
   sessions[sessionId] = session;
   saveSessionsToStorage(sessions);
+
+  // Automatically generate personal preparation proposal for this participant's completed session
+  mockGenerateProposalForCompletedSession(session);
+
   return session;
 }
