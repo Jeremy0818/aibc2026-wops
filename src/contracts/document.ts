@@ -32,6 +32,7 @@ export const FactProvenanceSchema = z.enum([
   "extracted",
   "confirmed",
   "assumption",
+  "lead_added",
 ]);
 
 export const DocumentFactSchema = z.object({
@@ -43,6 +44,9 @@ export const DocumentFactSchema = z.object({
   sourceDocumentId: z.string().min(1).optional(),
   sourceDocumentName: z.string().min(1).optional(),
   confirmedByLead: z.boolean().default(false),
+  addedByUserId: z.string().optional(),
+  addedByRole: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
 });
 
 export const DocumentMetadataSchema = z.object({
@@ -63,6 +67,15 @@ export const DocumentMetadataSchema = z.object({
 
 export const DocumentSchema = DocumentMetadataSchema;
 
+export const CreateDocumentFactRequestSchema = z.object({
+  statement: z.string().trim().min(1, "Statement is required"),
+  category: FactCategorySchema.default("other"),
+  provenance: z.literal("lead_added").default("lead_added"),
+  confirmedByLead: z.boolean().default(true),
+  addedByUserId: z.string().optional(),
+  addedByRole: z.string().optional(),
+});
+
 export const UpdateDocumentFactRequestSchema = z.object({
   statement: z.string().min(1).optional(),
   category: FactCategorySchema.optional(),
@@ -76,6 +89,7 @@ export const MeetingContextResponseSchema = z.object({
   synthesizedBrief: z.string().optional(),
   keyFacts: z.array(DocumentFactSchema).default([]),
   missingCategories: z.array(FactCategorySchema).default([]),
+  contextVersion: z.number().int().positive().default(1),
 });
 
 export type DocumentType = z.infer<typeof DocumentTypeSchema>;
@@ -87,6 +101,9 @@ export type FactProvenance = z.infer<typeof FactProvenanceSchema>;
 export type DocumentFact = z.infer<typeof DocumentFactSchema>;
 export type DocumentMetadata = z.infer<typeof DocumentMetadataSchema>;
 export type Document = z.infer<typeof DocumentSchema>;
+export type CreateDocumentFactRequest = z.infer<
+  typeof CreateDocumentFactRequestSchema
+>;
 export type UpdateDocumentFactRequest = z.infer<
   typeof UpdateDocumentFactRequestSchema
 >;

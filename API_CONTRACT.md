@@ -86,11 +86,13 @@ All error responses return `ApiErrorSchema` ([`src/contracts/error.ts`](./src/co
 | Code | HTTP Status | Description |
 | :--- | :--- | :--- |
 | `BAD_REQUEST` | `400` | Malformed JSON or missing parameters |
-| `VALIDATION_ERROR` | `422` / `400` | Request body failed Zod schema validation |
+| `UNAUTHORIZED` | `401` | Missing or invalid authentication token |
+| `FORBIDDEN` | `403` | Authenticated user is not authorized to mutate shared meeting context or session |
 | `NOT_FOUND` | `404` | Meeting, document, fact, session, or proposal does not exist |
 | `CONFLICT` | `409` | State conflict (e.g. finalizing while documents are still processing) |
 | `INVALID_STAGE_TRANSITION` | `409` | Attempted invalid `SkillStage` transition |
 | `UNPROCESSABLE_ENTITY` | `422` | Business rule violation or unsupported file format |
+| `VALIDATION_ERROR` | `422` / `400` | Request body failed Zod schema validation |
 | `INTERNAL_ERROR` | `500` | Server-side execution failure |
 | `UPSTREAM_ERROR` | `502` | Upstream failure communicating with Gemini Live, GCS, or Firestore |
 
@@ -227,6 +229,37 @@ Uploads a client PDF brief to a meeting draft.
   }
   ```
 - **Errors:** `400 BAD_REQUEST`, `404 NOT_FOUND`, `422 UNPROCESSABLE_ENTITY` (unsupported format or size limit).
+
+#### `POST /api/meetings/{meetingId}/facts`
+Adds new Team Lead information not found in any client document (e.g. missing budget ceiling, campaign objective, or additional requirements).
+
+- **Request Body (`CreateDocumentFactRequestSchema`):**
+  ```json
+  {
+    "statement": "Total campaign budget ceiling is Rp250,000,000 for 6 weeks.",
+    "category": "budget",
+    "provenance": "lead_added",
+    "confirmedByLead": true,
+    "addedByRole": "Creative Team Lead",
+    "addedByUserId": "usr_lead_01"
+  }
+  ```
+- **Response `201 Created`:**
+  ```json
+  {
+    "fact": {
+      "id": "fact_lead_9b2a1",
+      "statement": "Total campaign budget ceiling is Rp250,000,000 for 6 weeks.",
+      "category": "budget",
+      "provenance": "lead_added",
+      "confirmedByLead": true,
+      "addedByRole": "Creative Team Lead",
+      "addedByUserId": "usr_lead_01",
+      "createdAt": "2026-10-18T05:00:00.000Z"
+    }
+  }
+  ```
+- **Errors:** `400 BAD_REQUEST`, `404 NOT_FOUND`, `422 VALIDATION_ERROR`.
 
 #### `PATCH /api/meetings/{meetingId}/facts/{factId}`
 Corrects or confirms an extracted client fact during review.
@@ -405,3 +438,87 @@ Synthesizes proposal incorporating multi-session decisions and highlighting conf
 
 #### `GET /api/proposals/{proposalId}`
 Retrieves generated proposal.
+
+---
+
+## 5. Shared Context Ownership & Role Permissions Architecture
+
+### 5.1 Context Ownership Model
+
+**Core Rule:**
+```text
+Shared Meeting Context = Client Brief Documents + Extracted Facts + Team Lead Additions/Corrections
+```
+
+Both original uploaded client documents and extracted/confirmed facts reside within the same Shared Meeting Context.
+- **Team Lead** is the sole authorized custodian of the Shared Meeting Context.
+- **Assigned Employees** receive an approved, read-only representation of the context to ground their individual, role-aware preparation sessions.
+- An employee cannot modify shared documents or facts, nor can they alter another employee's preparation sessions.
+
+### 5.2 Identity Modeling vs. Display Role Strings
+
+- **Authorization Gap Identified:** In `MeetingSchema`, `leadRole` is currently stored as a display string (e.g. `"Creative Team Lead"`). In production, authorization MUST NOT rely on display strings or client-side selectors.
+- **Required Backend Identity Model:**
+  - `MeetingSchema` must specify `teamLeadUserId: string` (or `createdByUserId: string`).
+  - Next.js server Route Handlers must inspect the caller's authenticated identity (`req.auth.userId` or session cookie).
+  - Mutating shared context requires `callerUserId === meeting.teamLeadUserId`.
+  - Frontend role selectors (such as the persona toggle) are strictly UI preview and demo simulators; backend endpoints must reject unauthorized requests with HTTP `403 Forbidden`.
+
+### 5.3 Endpoint Authorization Matrix
+
+| Endpoint | Method | Allowed Roles | Description / Preconditions |
+| :--- | :--- | :--- | :--- |
+| `/api/meetings` | `POST` | Authenticated User | Creates meeting; caller becomes `teamLeadUserId`. |
+| `/api/meetings/{id}` | `GET` | Team Lead or Assigned Employee | Read meeting details. |
+| `/api/meetings/{id}/context` | `GET` | Team Lead or Assigned Employee | Read unified shared context & facts. |
+| `/api/meetings/{id}/documents` | `POST` | **Team Lead Only** | Upload client brief PDF to meeting. |
+| `/api/meetings/{id}/documents/{docId}` | `DELETE` / `PUT` | **Team Lead Only** | Remove or replace document (pending backend contract extension). |
+| `/api/meetings/{id}/facts` | `POST` | **Team Lead Only** | Add missing fact (`provenance: "lead_added"`). |
+| `/api/meetings/{id}/facts/{factId}` | `PATCH` | **Team Lead Only** | Edit or confirm extracted fact (`provenance: "confirmed"`). |
+| `/api/meetings/{id}/finalize` | `POST` | **Team Lead Only** | Finalize meeting setup and lock shared context. |
+| `/api/sessions` | `POST` | Assigned Employee | Start session for caller's own `participantId`. |
+| `/api/sessions/{id}/events` | `POST` | **Session Owner Only** | Append transcript or decision event to caller's session. |
+| `/api/sessions/{id}/advance` | `POST` | **Session Owner Only** | Advance caller's session through skill stages. |
+| `/api/sessions/{id}/complete` | `POST` | **Session Owner Only** | Complete caller's preparation session. |
+| `/api/sessions/{id}/proposal` | `POST` | Team Lead or Assigned Employee | Request proposal synthesis for completed sessions. |
+
+### 5.4 HTTP 403 Forbidden Specification
+
+When a user attempts an unauthorized mutation (e.g. an employee attempts to upload a brief, edit a fact, or advance another employee's session), the server returns:
+
+- **Status Code:** `403 Forbidden`
+- **Body (`ApiErrorSchema`):**
+  ```json
+  {
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "Only the meeting's authorized Team Lead can mutate shared meeting context.",
+      "details": [
+        {
+          "field": "userId",
+          "message": "User usr_planner_01 is an assigned participant but not the team lead (usr_lead_01)."
+        }
+      ],
+      "requestId": "req_auth_789abc",
+      "timestamp": "2026-10-18T06:30:00.000Z"
+    }
+  }
+  ```
+
+### 5.5 Document Lifecycle & Data Integrity Rules
+
+1. **Raw Document Preservation:** Uploaded PDFs and extracted source statements are never overwritten or fabricated.
+2. **Provenance Isolation:**
+   - Raw facts: `provenance: "extracted"`, with `sourceDocumentId` and `pageOrSection`.
+   - Lead-added facts: `provenance: "lead_added"`, `sourceDocumentId: undefined`.
+   - Lead-corrected facts: `provenance: "confirmed"`, statement contains lead edits while preserving original raw excerpt in evidence history.
+3. **Document Removal / Replacement Behavior:**
+   - When a document is removed (`DELETE /documents/{id}`):
+     - Unreviewed extracted facts (`provenance: "extracted"`) tied to that document are soft-deleted or marked `revoked`.
+     - Confirmed facts (`provenance: "confirmed"`) are preserved as lead-confirmed institutional knowledge, with `sourceDocumentId` flagged as archived.
+     - Lead-added facts (`provenance: "lead_added"`) remain completely unaffected.
+     - `meeting.contextVersion` increments by 1.
+4. **Session Version Immutability:**
+   - Completed preparation sessions represent historical truth. A session snapshots or records `contextVersionAtStart`.
+   - Modifying documents or facts increments `meeting.contextVersion` for future sessions without invalidating or altering completed session transcripts and decisions.
+

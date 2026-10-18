@@ -62,6 +62,7 @@ export function DocumentUploadCard({
   documents,
   uploadState,
   mockMode,
+  isLeadPersona = true,
   onUploadFile,
   onRetryUpload,
   onEnableMockMode,
@@ -69,6 +70,7 @@ export function DocumentUploadCard({
   documents: DocumentMetadata[];
   uploadState: UploadProgressState;
   mockMode: boolean;
+  isLeadPersona?: boolean;
   onUploadFile: (
     file: File,
     options?: { simulateOutcome?: "ready" | "failed" | "empty_facts" }
@@ -168,25 +170,44 @@ export function DocumentUploadCard({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[#d95d39]">
+              Area 1
+            </span>
+            <span aria-hidden="true" className="text-[#dcd4c6]">·</span>
             <h2
               id="client-brief-documents-heading"
               className="text-base font-semibold text-[#1f1e1c] sm:text-lg"
             >
-              Client brief documents
+              Client Brief Documents
             </h2>
             <span className="rounded-full bg-[#f4f1ea] px-2.5 py-0.5 text-[11px] font-medium text-[#5c5852]">
               {documents.length === 0
                 ? "Empty"
                 : `${documents.length} PDF${documents.length === 1 ? "" : "s"}`}
             </span>
+            {isLeadPersona ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#cce5d8] bg-[#edf7f2] px-2.5 py-0.5 text-[11px] font-medium text-[#1f6a47]">
+                <span>Lead Manageable</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#ebe6dd] bg-[#faf9f6] px-2.5 py-0.5 text-[11px] font-medium text-[#5c5852]">
+                <span>Employee Read-Only</span>
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
-            Upload your client PDF brief (up to 10 MB) so WOPS! can ground ideas
-            in real facts from the document.
+            {isLeadPersona
+              ? "Upload client briefs (PDF, up to 10 MB) so WOPS! can ground ideas in real document facts. Only the Team Lead can upload documents."
+              : "Client briefs uploaded by your Team Lead. The grounded facts below were extracted from these documents to support your preparation call."}
           </p>
+          {isLeadPersona ? (
+            <p className="mt-1 text-[11px] text-[#8a847c]">
+              Note: Contract V2 supports append-only uploads. Document replacement and removal endpoints are pending backend contract extension.
+            </p>
+          ) : null}
         </div>
 
-        {mockMode ? (
+        {mockMode && isLeadPersona ? (
           <button
             type="button"
             disabled={isBusy}
@@ -199,73 +220,75 @@ export function DocumentUploadCard({
         ) : null}
       </div>
 
-      {/* Accessible Dropzone + Native File Picker */}
-      <div
-        role="button"
-        tabIndex={isBusy ? -1 : 0}
-        aria-disabled={isBusy}
-        aria-describedby={`${fileInputId}-hint`}
-        onClick={() => {
-          if (!isBusy) fileInputRef.current?.click();
-        }}
-        onKeyDown={handleDropzoneKeyDown}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-6 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] ${
-          isBusy
-            ? "cursor-wait border-[#ebe6dd] bg-[#faf9f6] opacity-80"
-            : isDragging
-            ? "border-[#d95d39] bg-[#fdf1ec]/70"
-            : "cursor-pointer border-[#dcd4c6] bg-[#faf9f6] hover:border-[#d95d39]/60 hover:bg-[#fdf1ec]/30"
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          id={fileInputId}
-          type="file"
-          accept="application/pdf,.pdf"
-          disabled={isBusy}
-          onChange={handleInputChange}
-          className="sr-only"
-        />
-
+      {/* Accessible Dropzone + Native File Picker — Authorized Team Lead Only */}
+      {isLeadPersona ? (
         <div
-          aria-hidden="true"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm text-[#d95d39] shadow-2xs"
+          role="button"
+          tabIndex={isBusy ? -1 : 0}
+          aria-disabled={isBusy}
+          aria-describedby={`${fileInputId}-hint`}
+          onClick={() => {
+            if (!isBusy) fileInputRef.current?.click();
+          }}
+          onKeyDown={handleDropzoneKeyDown}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-6 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] ${
+            isBusy
+              ? "cursor-wait border-[#ebe6dd] bg-[#faf9f6] opacity-80"
+              : isDragging
+              ? "border-[#d95d39] bg-[#fdf1ec]/70"
+              : "cursor-pointer border-[#dcd4c6] bg-[#faf9f6] hover:border-[#d95d39]/60 hover:bg-[#fdf1ec]/30"
+          }`}
         >
-          {isBusy ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#d95d39] border-t-transparent" />
-          ) : (
-            "📄"
-          )}
+          <input
+            ref={fileInputRef}
+            id={fileInputId}
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={isBusy}
+            onChange={handleInputChange}
+            className="sr-only"
+          />
+
+          <div
+            aria-hidden="true"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm text-[#d95d39] shadow-2xs"
+          >
+            {isBusy ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#d95d39] border-t-transparent" />
+            ) : (
+              "📄"
+            )}
+          </div>
+
+          <p className="mt-2.5 text-sm font-medium text-[#1f1e1c]">
+            {uploadState.phase === "uploading"
+              ? `Uploading ${uploadState.fileName ?? "PDF brief"}...`
+              : uploadState.phase === "processing"
+              ? `Processing ${uploadState.fileName ?? "PDF brief"}...`
+              : "Choose a PDF brief or drag it here"}
+          </p>
+
+          <p id={`${fileInputId}-hint`} className="mt-1 text-xs text-[#8a847c]">
+            {uploadState.phase === "uploading"
+              ? `${formatFileSize(uploadState.fileSize)} · Sending document to WOPS!`
+              : uploadState.phase === "processing"
+              ? "Reading pages and extracting key facts..."
+              : "PDF only (.pdf) · Up to 10 MB"}
+          </p>
+
+          {!isBusy ? (
+            <span className="mt-3 inline-flex min-h-[36px] items-center rounded-full border border-[#ebe6dd] bg-white px-4 py-1.5 text-xs font-medium text-[#1f1e1c] shadow-2xs">
+              Browse PDF file
+            </span>
+          ) : null}
         </div>
+      ) : null}
 
-        <p className="mt-2.5 text-sm font-medium text-[#1f1e1c]">
-          {uploadState.phase === "uploading"
-            ? `Uploading ${uploadState.fileName ?? "PDF brief"}...`
-            : uploadState.phase === "processing"
-            ? `Processing ${uploadState.fileName ?? "PDF brief"}...`
-            : "Choose a PDF brief or drag it here"}
-        </p>
-
-        <p id={`${fileInputId}-hint`} className="mt-1 text-xs text-[#8a847c]">
-          {uploadState.phase === "uploading"
-            ? `${formatFileSize(uploadState.fileSize)} · Sending document to WOPS!`
-            : uploadState.phase === "processing"
-            ? "Reading pages and extracting key facts..."
-            : "PDF only (.pdf) · Up to 10 MB"}
-        </p>
-
-        {!isBusy ? (
-          <span className="mt-3 inline-flex min-h-[36px] items-center rounded-full border border-[#ebe6dd] bg-white px-4 py-1.5 text-xs font-medium text-[#1f1e1c] shadow-2xs">
-            Browse PDF file
-          </span>
-        ) : null}
-      </div>
-
-      {/* Client-side Validation Error */}
-      {validationError ? (
+      {/* Client-side Validation Error (Lead Only) */}
+      {isLeadPersona && validationError ? (
         <div
           role="alert"
           className="mt-3 flex items-start justify-between gap-3 rounded-2xl border border-[#f2c8be] bg-[#fff8f6] px-4 py-3 text-xs text-[#b44322]"
@@ -282,8 +305,8 @@ export function DocumentUploadCard({
         </div>
       ) : null}
 
-      {/* Upload / Processing Failure State with Retry */}
-      {uploadState.phase === "failed" && uploadState.error ? (
+      {/* Upload / Processing Failure State with Retry (Lead Only) */}
+      {isLeadPersona && uploadState.phase === "failed" && uploadState.error ? (
         <div
           role="alert"
           className="mt-4 rounded-2xl border border-[#f2c8be] bg-[#fff8f6] p-4"
@@ -330,12 +353,13 @@ export function DocumentUploadCard({
         </div>
       ) : null}
 
-      {/* Uploaded Documents List */}
+      {/* Attached Client Documents List */}
       <div className="mt-5 space-y-2.5">
         {documents.length === 0 && !isBusy ? (
           <div className="rounded-2xl bg-[#faf9f6] px-4 py-3.5 text-xs text-[#5c5852]">
-            No client PDF brief uploaded yet. Attach a PDF above so WOPS! can
-            reference verified brief facts during your preparation call.
+            {isLeadPersona
+              ? "No client PDF brief uploaded yet. Attach a PDF above so WOPS! can reference verified brief facts during preparation."
+              : "No client PDF brief has been uploaded by the Team Lead yet. Once attached, verified brief facts will appear here."}
           </div>
         ) : (
           documents.map((doc) => (
@@ -379,13 +403,19 @@ export function DocumentUploadCard({
               </div>
 
               {doc.processingStatus === "failed" ? (
-                <button
-                  type="button"
-                  onClick={() => void onRetryUpload()}
-                  className="self-start rounded-full border border-[#ebe6dd] bg-white px-3.5 py-1.5 text-xs font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea] sm:self-auto"
-                >
-                  Retry upload
-                </button>
+                isLeadPersona ? (
+                  <button
+                    type="button"
+                    onClick={() => void onRetryUpload()}
+                    className="self-start rounded-full border border-[#ebe6dd] bg-white px-3.5 py-1.5 text-xs font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea] sm:self-auto"
+                  >
+                    Retry upload
+                  </button>
+                ) : (
+                  <span className="text-xs font-medium text-[#b44322]">
+                    Processing failed
+                  </span>
+                )
               ) : null}
             </div>
           ))

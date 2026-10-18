@@ -7,10 +7,18 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { DocumentFact, DocumentMetadata } from "@/contracts/document";
+import type {
+  CreateDocumentFactRequest,
+  DocumentFact,
+  DocumentMetadata,
+  FactCategory,
+  UpdateDocumentFactRequest,
+} from "@/contracts/document";
 import type { Meeting } from "@/contracts/meeting";
 import {
+  createDocumentFact,
   getMeetingContext,
+  updateDocumentFact,
   uploadMeetingDocument,
 } from "@/lib/client/documents-api";
 import {
@@ -157,6 +165,9 @@ export function useMeetingDetail(meetingId: string) {
     undefined
   );
   const [keyFacts, setKeyFacts] = useState<DocumentFact[]>([]);
+  const [missingCategories, setMissingCategories] = useState<FactCategory[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<WopsApiClientError | null>(null);
   const [reloadTick, setReloadTick] = useState<number>(0);
@@ -179,6 +190,7 @@ export function useMeetingDetail(meetingId: string) {
         setDocuments(contextData.documents);
         setSynthesizedBrief(contextData.synthesizedBrief);
         setKeyFacts(contextData.keyFacts);
+        setMissingCategories(contextData.missingCategories ?? []);
         setError(null);
         setIsLoading(false);
       })
@@ -188,6 +200,7 @@ export function useMeetingDetail(meetingId: string) {
         setDocuments([]);
         setSynthesizedBrief(undefined);
         setKeyFacts([]);
+        setMissingCategories([]);
         setError(toWopsClientError(err, "Failed to load meeting details"));
         setIsLoading(false);
       });
@@ -251,6 +264,7 @@ export function useMeetingDetail(meetingId: string) {
         setDocuments(updatedContext.documents);
         setSynthesizedBrief(updatedContext.synthesizedBrief);
         setKeyFacts(updatedContext.keyFacts);
+        setMissingCategories(updatedContext.missingCategories ?? []);
 
         if (uploadedDoc.processingStatus === "failed") {
           setUploadState({
@@ -299,6 +313,58 @@ export function useMeetingDetail(meetingId: string) {
     [meetingId]
   );
 
+  const updateFact = useCallback(
+    async (
+      factId: string,
+      updates: UpdateDocumentFactRequest
+    ): Promise<DocumentFact> => {
+      const updated = await updateDocumentFact(meetingId, factId, updates);
+      setKeyFacts((prev) =>
+        prev.map((f) => (f.id === factId ? { ...f, ...updated } : f))
+      );
+      setDocuments((prevDocs) =>
+        prevDocs.map((doc) => ({
+          ...doc,
+          extractedFacts: doc.extractedFacts.map((f) =>
+            f.id === factId ? { ...f, ...updated } : f
+          ),
+        }))
+      );
+      return updated;
+    },
+    [meetingId]
+  );
+
+  const addFact = useCallback(
+    async (input: CreateDocumentFactRequest): Promise<DocumentFact> => {
+      const created = await createDocumentFact(meetingId, input);
+      setKeyFacts((prev) => [...prev, created]);
+      setMissingCategories((prev) => prev.filter((c) => c !== input.category));
+
+      // Re-sync full context if critical briefing property updated
+      if (
+        ["budget", "client_objective", "target_audience"].includes(
+          input.category
+        )
+      ) {
+        getMeetingContext(meetingId)
+          .then((ctx) => {
+            setMeeting(ctx.meeting);
+            setDocuments(ctx.documents);
+            setSynthesizedBrief(ctx.synthesizedBrief);
+            setKeyFacts(ctx.keyFacts);
+            setMissingCategories(ctx.missingCategories ?? []);
+          })
+          .catch(() => {
+            // Keep local state if background refresh fails
+          });
+      }
+
+      return created;
+    },
+    [meetingId]
+  );
+
   const retryUpload = useCallback(async () => {
     const previous = lastFileRef.current;
     if (!previous) return;
@@ -337,10 +403,13 @@ export function useMeetingDetail(meetingId: string) {
     documents,
     synthesizedBrief,
     keyFacts,
+    missingCategories,
     isLoading,
     error,
     uploadState,
     uploadBriefPdf,
+    addFact,
+    updateFact,
     retryUpload,
     markSetupReady,
     clearUploadFeedback,

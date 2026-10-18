@@ -1,10 +1,12 @@
 import { z } from "zod";
 import {
+  CreateDocumentFactRequestSchema,
   DocumentFactSchema,
   DocumentMetadataSchema,
   DocumentTypeSchema,
   MeetingContextResponseSchema,
   UpdateDocumentFactRequestSchema,
+  type CreateDocumentFactRequest,
   type DocumentFact,
   type DocumentMetadata,
   type DocumentType,
@@ -15,6 +17,7 @@ import { ApiErrorSchema } from "@/contracts/error";
 import { WopsApiClientError } from "./meetings-api";
 import {
   isMockModeEnabled,
+  mockCreateDocumentFact,
   mockGetMeetingContext,
   mockUpdateDocumentFact,
   mockUploadMeetingDocument,
@@ -24,6 +27,10 @@ export const MAX_PDF_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB limit
 
 const UploadDocumentResponseSchema = z.object({
   document: DocumentMetadataSchema,
+});
+
+const CreateFactResponseSchema = z.object({
+  fact: DocumentFactSchema,
 });
 
 const UpdateFactResponseSchema = z.object({
@@ -265,6 +272,74 @@ export async function updateDocumentFact(
   if (!parsed.success) {
     throw new WopsApiClientError({
       message: `Invalid response schema from PATCH /api/meetings/${trimmedMeetingId}/facts/${trimmedFactId}`,
+      status: response.status,
+      code: "SCHEMA_ERROR",
+      details: parsed.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  return parsed.data.fact;
+}
+
+/**
+ * POST /api/meetings/{meetingId}/facts
+ * Contract V2: Adds new Team Lead information not found in any client document.
+ */
+export async function createDocumentFact(
+  meetingId: string,
+  input: CreateDocumentFactRequest
+): Promise<DocumentFact> {
+  const trimmedMeetingId = meetingId.trim();
+  if (!trimmedMeetingId) {
+    throw new WopsApiClientError({
+      message: "Meeting ID is required to add a fact.",
+      status: 400,
+      code: "BAD_REQUEST",
+    });
+  }
+
+  const payload = CreateDocumentFactRequestSchema.parse(input);
+
+  if (isMockModeEnabled()) {
+    return mockCreateDocumentFact(trimmedMeetingId, payload);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/meetings/${encodeURIComponent(trimmedMeetingId)}/facts`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+  } catch (err) {
+    throw new WopsApiClientError({
+      message:
+        err instanceof Error
+          ? `Network error while adding fact: ${err.message}`
+          : "Network error while adding fact",
+      status: 0,
+      code: "NETWORK_ERROR",
+    });
+  }
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = CreateFactResponseSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new WopsApiClientError({
+      message: `Invalid response schema from POST /api/meetings/${trimmedMeetingId}/facts`,
       status: response.status,
       code: "SCHEMA_ERROR",
       details: parsed.error.issues.map((issue) => ({

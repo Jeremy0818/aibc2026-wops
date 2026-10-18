@@ -45,6 +45,9 @@ export const MeetingSchema = z.object({
 
   // Legacy field preserved for backwards-compatibility; derived from primary participant
   participantRole: z.string().min(1).optional(),
+
+  // Context revision version for change tracking across sessions
+  contextVersion: z.number().int().positive().default(1),
 });
 
 /**

@@ -5,9 +5,11 @@ import {
   type CreateMeetingRequest,
 } from "./meeting";
 import {
+  CreateDocumentFactRequestSchema,
   DocumentMetadataSchema,
   DocumentProcessingStatusSchema,
   MeetingContextResponseSchema,
+  type CreateDocumentFactRequest,
   type DocumentMetadata,
   type DocumentProcessingStatus,
 } from "./document";
@@ -113,7 +115,22 @@ export function validateSampleContracts(): void {
     documents: [documentMeta],
     synthesizedBrief: "KOVA Light launch brief summary.",
     keyFacts: documentMeta.extractedFacts,
+    contextVersion: 1,
   });
+
+  const createFactReq: CreateDocumentFactRequest =
+    CreateDocumentFactRequestSchema.parse({
+      statement: "KOVA campaign budget ceiling is Rp250,000,000 for 6 weeks.",
+      category: "budget",
+      provenance: "lead_added",
+      confirmedByLead: true,
+      addedByRole: "Creative Team Lead",
+      addedByUserId: "usr_lead_01",
+    });
+
+  if (createFactReq.provenance !== "lead_added") {
+    throw new Error("Expected fact provenance to be 'lead_added'");
+  }
 
   const stage: SkillStage = SkillStageSchema.parse("UNDERSTAND");
 
@@ -304,3 +321,7 @@ export function validateSampleContracts(): void {
     throw new Error("Invalid API error schema");
   }
 }
+
+// Self-executing validation check
+validateSampleContracts();
+

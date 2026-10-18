@@ -1,4 +1,8 @@
 import type { DocumentFact, DocumentMetadata } from "@/contracts/document";
+import {
+  getOriginalFactStatement,
+  isFactCorrectedByLead,
+} from "@/lib/client/fact-evidence";
 
 const CATEGORY_LABELS: Record<string, string> = {
   client_objective: "Client Objective",
@@ -109,6 +113,8 @@ export function GroundedBriefPreview({
                 fact.sourceDocumentName ?? factSourceDocMap.get(fact.id);
               const categoryLabel =
                 CATEGORY_LABELS[fact.category] ?? "Brief Fact";
+              const isEdited = isFactCorrectedByLead(fact);
+              const originalExcerpt = getOriginalFactStatement(fact);
 
               return (
                 <li
@@ -119,7 +125,11 @@ export function GroundedBriefPreview({
                     <span className="rounded-full border border-[#ebe6dd] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#1f1e1c]">
                       {categoryLabel}
                     </span>
-                    {fact.provenance === "confirmed" ? (
+                    {isEdited ? (
+                      <span className="rounded-full border border-[#cce5d8] bg-[#edf7f2] px-2 py-0.5 text-[10px] font-medium text-[#1f6a47]">
+                        ✓ Lead Corrected
+                      </span>
+                    ) : fact.provenance === "confirmed" ? (
                       <span className="rounded-full border border-[#cce5d8] bg-[#edf7f2] px-2 py-0.5 text-[10px] font-medium text-[#1f6a47]">
                         Confirmed
                       </span>
@@ -129,6 +139,17 @@ export function GroundedBriefPreview({
                   <p className="mt-2 text-sm leading-relaxed text-[#1f1e1c]">
                     {fact.statement}
                   </p>
+
+                  {isEdited ? (
+                    <div className="mt-2.5 rounded-xl border border-[#f5d5c8] bg-[#fdf1ec]/60 p-2.5 text-xs">
+                      <p className="font-semibold text-[#b44322]">
+                        Original PDF Evidence:
+                      </p>
+                      <p className="mt-0.5 italic text-[#5c5852]">
+                        &ldquo;{originalExcerpt}&rdquo;
+                      </p>
+                    </div>
+                  ) : null}
 
                   <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-[#5c5852]">
                     <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 font-medium text-[#1f1e1c]">
