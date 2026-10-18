@@ -7,7 +7,9 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "deploy": "firebase deploy --only apphosting",
+    "deploy:git": "git push fork HEAD:integration/backend-unification"
   },
   "dependencies": {
     "@google/genai": "^2.30.0",

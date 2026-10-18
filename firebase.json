@@ -1,0 +1,14 @@
+{
+  "apphosting": {
+    "backendId": "aibc2026-wops",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      ".next",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "functions"
+    ]
+  }
+}
