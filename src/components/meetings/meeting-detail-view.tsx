@@ -89,7 +89,7 @@ export function MeetingDetailView({ meetingId }: { meetingId: string }) {
       {/* Briefing Title Card */}
       <header className="wops-warm-card rounded-3xl p-5 sm:p-8">
         <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#d95d39]">
-          <span>Team Lead · Meeting Setup &amp; Shared Context</span>
+          <span>Team Lead · Shared brief</span>
           <span aria-hidden="true">·</span>
           <span>
             {meeting.clientName} ({meeting.projectName})
@@ -127,14 +127,13 @@ export function MeetingDetailView({ meetingId }: { meetingId: string }) {
 
           <div className="col-span-2 sm:col-span-1">
             <dt className="text-[11px] font-medium text-[#8a847c]">
-              Brief owner (Team Lead)
+              Meeting Lead
             </dt>
             <dd className="mt-0.5 text-xs font-medium text-[#1f1e1c] sm:text-sm">
               {meeting.leadRole}
             </dd>
             <dd className="text-[11px] text-[#8a847c]">
-              {assignedEmployees.length} employee{" "}
-              {assignedEmployees.length === 1 ? "role" : "roles"} assigned
+              {assignedEmployees.length} {assignedEmployees.length === 1 ? "teammate" : "teammates"} assigned
             </dd>
           </div>
         </dl>
@@ -149,24 +148,24 @@ export function MeetingDetailView({ meetingId }: { meetingId: string }) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                Interactive Role Simulator
+                Role preview
               </span>
               <span className="text-xs font-semibold text-[#1f1e1c]">
                 {activePersona === "lead"
                   ? `Team Lead (${meeting.leadRole})`
-                  : "Assigned Employee View"}
+                  : "Teammate View"}
               </span>
               <span className="rounded-full bg-[#f4f1ea] px-2 py-0.5 text-[10px] font-medium text-[#8a847c]">
-                UI Simulation
+                Testing toggle
               </span>
             </div>
             <p className="mt-1 text-xs text-[#5c5852]">
               {activePersona === "lead"
-                ? "Team Leads can upload documents, edit extracted facts, and add missing context with immediate synchronization."
-                : "Employees receive verified grounded brief facts and attached documents in strictly read-only mode."}
+                ? "As Team Lead, you can upload client documents, edit extracted facts, or add missing details."
+                : "Teammates receive the confirmed brief facts and documents in read-only mode to guide their prep."}
             </p>
             <p className="mt-0.5 text-[11px] text-[#8a847c]">
-              Real authorization is enforced server-side: requests from unauthorized users are rejected with 403 Forbidden.
+              In production, access permissions are verified server-side based on each user&apos;s authenticated login.
             </p>
           </div>
 
@@ -185,7 +184,7 @@ export function MeetingDetailView({ meetingId }: { meetingId: string }) {
               }`}
               aria-pressed={activePersona === "lead"}
             >
-              Team Lead (Editor)
+              Team Lead (Edit)
             </button>
             <button
               type="button"
@@ -197,7 +196,7 @@ export function MeetingDetailView({ meetingId }: { meetingId: string }) {
               }`}
               aria-pressed={activePersona === "employee"}
             >
-              Employee (Read-Only)
+              Teammate (Read-only)
             </button>
           </div>
         </div>
@@ -269,11 +268,10 @@ export function MeetingDetailView({ meetingId }: { meetingId: string }) {
               id="assigned-employees-heading"
               className="text-base font-semibold text-[#1f1e1c] sm:text-lg"
             >
-              Assigned employees &amp; preparation roles
+              Assigned teammates
             </h2>
             <p className="text-xs text-[#5c5852]">
-              Each employee receives the same factual meeting context and PDF
-              facts above, with an AI conversation tailored to their role.
+              Every teammate works from the same brief, but WOPS! spars with each person on their specific discipline.
             </p>
           </div>
           <Link

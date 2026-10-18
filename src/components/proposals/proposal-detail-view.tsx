@@ -51,7 +51,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
           href="/proposals"
           className="inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-[#5c5852] transition hover:text-[#1f1e1c]"
         >
-          ← Back to My Proposals
+          ← Back to proposals
         </Link>
 
         {meeting && (
@@ -59,7 +59,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
             href={`/prepare/${meeting.id}`}
             className="inline-flex min-h-10 items-center gap-1.5 text-xs font-medium text-[#d95d39] hover:underline"
           >
-            Go to Call Experience →
+            Prepare tab →
           </Link>
         )}
       </div>
@@ -71,15 +71,14 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold text-[#1f1e1c]">
-            Personal Preparation · Not a Final Meeting Decision
+            Personal preparation · Not a final meeting decision
           </span>
           <span className="rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2 py-0.5 text-[10px] font-semibold text-[#b44322]">
             {proposal.participantRole} View
           </span>
         </div>
         <p className="mt-1">
-          This document captures {proposal.participantName}&apos;s independent pre-meeting thinking, ideas, and talking points.
-          It does not represent a finalized team decision or an approved client proposal.
+          This document captures {proposal.participantName}&apos;s independent pre-meeting thinking, ideas, and talking points to discuss when the team meets.
         </p>
       </aside>
 
@@ -537,7 +536,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
           href="/proposals"
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-5 py-2.5 text-xs font-semibold text-[#5c5852] transition hover:bg-[#f4f1ea]"
         >
-          ← Return to My Proposals
+          ← Back to proposals
         </Link>
 
         {meeting && (
@@ -545,7 +544,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
             href={`/meetings/${meeting.id}`}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#d95d39] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#c34e2c]"
           >
-            View Meeting &amp; Shared Brief →
+            View meeting brief →
           </Link>
         )}
       </div>

@@ -52,7 +52,7 @@ export function IncomingCallModal({
           </div>
 
           <p className="mt-2 text-[11px] text-[#8a847c]">
-            Demo Simulation · No real telephone, push notification, or live Gemini connection
+            Demo simulation · In-browser sparring call
           </p>
 
           {/* Ringing Assistant Orb */}
@@ -65,7 +65,7 @@ export function IncomingCallModal({
             id="incoming-call-title"
             className="text-xl font-semibold tracking-tight text-[#1f1e1c] sm:text-2xl"
           >
-            Incoming Preparation Call
+            Incoming preparation call
           </h2>
 
           <div className="mt-2 space-y-1">
@@ -73,7 +73,7 @@ export function IncomingCallModal({
               For: <span className="text-[#d95d39] font-semibold">{participant.name}</span>
             </p>
             <p className="text-xs text-[#5c5852]">
-              Assigned Role: <span className="font-medium text-[#1f1e1c]">{participant.role}</span>
+              Assigned role: <span className="font-medium text-[#1f1e1c]">{participant.role}</span>
             </p>
             <p className="text-xs text-[#8a847c]">
               Meeting: <span className="font-medium text-[#1f1e1c]">{meeting.title}</span> ({meeting.clientName})
@@ -96,7 +96,7 @@ export function IncomingCallModal({
               onClick={onDecline}
               className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-5 py-2.5 text-xs font-semibold text-[#5c5852] transition hover:bg-[#f4f1ea] hover:text-[#1f1e1c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a847c]"
             >
-              Decline (Later)
+              Not now
             </button>
 
             <button
@@ -106,7 +106,7 @@ export function IncomingCallModal({
               className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 py-2.5 text-xs font-semibold text-white shadow-md transition hover:bg-[#c34e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
             >
               <span aria-hidden="true">📞</span>
-              <span>Accept &amp; Spar</span>
+              <span>Answer call</span>
             </button>
           </div>
         </div>

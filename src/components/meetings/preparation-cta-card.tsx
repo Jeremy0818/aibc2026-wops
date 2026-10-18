@@ -67,21 +67,21 @@ export function PreparationCtaCard({
                 className="text-base font-semibold text-[#1f1e1c] sm:text-lg"
               >
                 {isReadyForPrep
-                  ? "Meeting setup complete — ready for employee preparation"
+                  ? "Brief ready — teammates can prepare"
                   : isLeadPersona
-                  ? "Meeting draft — review documents & confirm setup"
-                  : "Meeting draft — waiting for Team Lead setup confirmation"}
+                  ? "Meeting draft — review facts & confirm"
+                  : "Meeting draft — waiting for Team Lead confirmation"}
               </h2>
               <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                {isReadyForPrep ? "Setup complete" : "Draft setup"}
+                {isReadyForPrep ? "Ready" : "Draft"}
               </span>
             </div>
             <p className="text-sm leading-relaxed text-[#5c5852]">
               {isReadyForPrep
-                ? "The shared brief and client PDF facts are locked in once at the meeting level. Assigned employees can now prepare from their own role's perspective without re-uploading the PDF."
+                ? "The shared brief and client PDF facts are confirmed. Teammates can now prepare from their own role's perspective without re-reading the full document."
                 : isLeadPersona
-                ? "Client documents are shared once for the whole meeting. Add another document or retry a failed one below, then confirm setup so assigned employees can prepare."
-                : "Your Team Lead is configuring the shared brief and client documents. Once finalized, you can start your individual voice-first preparation call."}
+                ? "Client documents are shared once for the whole meeting. Check the extracted facts below, then confirm setup so teammates can prepare."
+                : "Your Team Lead is configuring the shared brief. Once confirmed, you can start your 1-on-1 voice preparation call."}
             </p>
           </div>
         </div>
@@ -101,7 +101,7 @@ export function PreparationCtaCard({
             href={`/prepare/${encodeURIComponent(meeting.id)}`}
             className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 py-2.5 text-xs font-medium text-white shadow-xs transition hover:bg-[#c34e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
           >
-            <span>{isLeadPersona ? "Open Employee Preparation" : "Go to Preparation"}</span>
+            <span>{isLeadPersona ? "Open teammate preparation" : "Go to preparation"}</span>
             <span aria-hidden="true">→</span>
           </Link>
         </div>

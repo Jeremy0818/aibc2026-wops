@@ -89,14 +89,14 @@ export function SetupReviewPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-medium text-[#1f1e1c]">
             {isFinalized
-              ? "✓ Meeting setup confirmed & ready for employee preparation!"
+              ? "✓ Brief confirmed — ready for teammate preparation!"
               : inProgress
               ? `Draft created · uploading documents (${readyCount + failedCount}/${sent.length})…`
               : sent.length === 0
               ? "Draft created · no documents uploaded yet"
               : failedCount > 0
               ? `Draft created · ${readyCount} of ${sent.length} documents grounded, ${failedCount} failed`
-              : `Draft created · all ${sent.length} documents grounded and ready for confirmation`}
+              : `Draft saved · all ${sent.length} documents read and ready for confirmation`}
           </p>
           <span
             className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
@@ -111,10 +111,10 @@ export function SetupReviewPanel({
 
         <p className="mt-1 text-xs leading-relaxed text-[#5c5852]">
           {isFinalized
-            ? "Assigned employees can now run role-specific AI preparation sessions grounded in these source facts."
+            ? "Teammates can now run 1-on-1 AI preparation calls grounded in these facts."
             : failedCount > 0
             ? "The meeting draft is saved. Retry failed documents above — successfully grounded facts are kept."
-            : "Review the source-grounded facts below, then click Confirm & Finalize Setup to unlock AI preparation for your team."}
+            : "Review the source-grounded facts below, then click Confirm brief & unlock preparation."}
         </p>
       </div>
 
@@ -161,7 +161,7 @@ export function SetupReviewPanel({
                 </>
               ) : (
                 <>
-                  <span>Confirm &amp; Finalize Setup</span>
+                  <span>Confirm brief &amp; unlock preparation</span>
                   <span aria-hidden="true">✓</span>
                 </>
               )}
@@ -172,7 +172,7 @@ export function SetupReviewPanel({
                 href={`/prepare/${encodeURIComponent(meeting.id)}`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#1f1e1c] px-5 text-sm font-medium text-white transition hover:bg-[#3a3835]"
               >
-                <span>Go to Employee Preparation</span>
+                <span>Go to teammate preparation</span>
                 <span aria-hidden="true">→</span>
               </Link>
             </div>
@@ -182,7 +182,7 @@ export function SetupReviewPanel({
             href={`/meetings/${encodeURIComponent(meeting.id)}`}
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-5 text-sm font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea]"
           >
-            Open Meeting Overview →
+            Meeting details →
           </Link>
         </div>
       ) : null}

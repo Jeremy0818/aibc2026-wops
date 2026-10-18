@@ -43,12 +43,12 @@ const BRIEF_SECTIONS: SectionConfig[] = [
     key: "objectives",
     categories: ["client_objective"],
     defaultCategory: "client_objective",
-    title: "Client Campaign Objective",
+    title: "Campaign objective",
     subtitle: "Core strategic goal and primary outcome expected by the client",
     emptyExplanation:
-      "No structured campaign objective statement was extracted from the uploaded PDF.",
+      "No clear campaign objective was found in the uploaded documents.",
     badgeLabel: "Objective",
-    addLabel: "Add Campaign Objective",
+    addLabel: "Add objective",
     inputPlaceholder:
       "e.g. Drive trial among urban commuters in Jakarta and Surabaya without sacrificing taste perception.",
   },
@@ -56,12 +56,12 @@ const BRIEF_SECTIONS: SectionConfig[] = [
     key: "audience",
     categories: ["target_audience"],
     defaultCategory: "target_audience",
-    title: "Target Audience & Demographics",
+    title: "Target audience",
     subtitle: "Who the campaign is designed to reach, engage, and convert",
     emptyExplanation:
-      "No audience demographics or distribution corridors were extracted from the PDF.",
+      "No target audience was found in the uploaded documents.",
     badgeLabel: "Audience",
-    addLabel: "Add Target Audience",
+    addLabel: "Add target audience",
     inputPlaceholder:
       "e.g. Indonesian urban Gen Z and young millennial commuters (ages 20-32) in Jakarta and Surabaya transit corridors.",
   },
@@ -69,12 +69,12 @@ const BRIEF_SECTIONS: SectionConfig[] = [
     key: "requirements",
     categories: ["requirement"],
     defaultCategory: "requirement",
-    title: "Client Requirements",
+    title: "Requirements & specs",
     subtitle: "Mandatory specs, messaging angles, and brief requirements",
     emptyExplanation:
-      "No explicit client requirements were extracted from the PDF.",
+      "No specific requirements were found in the uploaded documents.",
     badgeLabel: "Requirement",
-    addLabel: "Add Requirement",
+    addLabel: "Add requirement",
     inputPlaceholder:
       "e.g. Highlight 5g cane sugar RTD positioning without making clinical or medical claims.",
   },
@@ -82,24 +82,24 @@ const BRIEF_SECTIONS: SectionConfig[] = [
     key: "budget",
     categories: ["budget"],
     defaultCategory: "budget",
-    title: "Budget Ceiling & Commercials",
+    title: "Budget ceiling",
     subtitle: "Commercial ceiling and spending boundaries established by the client",
     emptyExplanation:
-      "No budget ceiling facts were detected in the uploaded documents.",
+      "No budget ceiling was mentioned in the uploaded documents.",
     badgeLabel: "Budget",
-    addLabel: "Add Budget Ceiling",
+    addLabel: "Add budget ceiling",
     inputPlaceholder: "Enter budget ceiling amount in IDR (e.g. 250000000)",
   },
   {
     key: "constraints",
     categories: ["constraint"],
     defaultCategory: "constraint",
-    title: "Guardrails & Constraints",
+    title: "Guardrails & constraints",
     subtitle: "Brand guardrails, regulatory boundaries, and compliance rules",
     emptyExplanation:
-      "No explicit constraints were extracted from the PDF.",
+      "No guardrails or constraints were found in the uploaded documents.",
     badgeLabel: "Guardrail",
-    addLabel: "Add Constraint",
+    addLabel: "Add guardrail",
     inputPlaceholder:
       "e.g. All copy and creator activations must avoid clinical, medical, or weight-loss claims.",
   },
@@ -107,12 +107,12 @@ const BRIEF_SECTIONS: SectionConfig[] = [
     key: "deliverables_timeline",
     categories: ["deliverable", "timeline"],
     defaultCategory: "deliverable",
-    title: "Deliverables & Timeline",
+    title: "Deliverables & timeline",
     subtitle: "Phased rollout milestones, schedules, and campaign asset deliverables",
     emptyExplanation:
-      "No timeline or deliverable facts were extracted from the PDF.",
+      "No timeline or deliverables were found in the uploaded documents.",
     badgeLabel: "Scope",
-    addLabel: "Add Deliverable / Milestone",
+    addLabel: "Add deliverable",
     inputPlaceholder:
       "e.g. 6-week phased rollout: Week 1 creator seeding, Week 3 commuter station sampling hubs.",
   },
@@ -159,10 +159,6 @@ export function EditableGroundedContext({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[#d95d39]">
-              Area 2
-            </span>
-            <span aria-hidden="true" className="text-[#dcd4c6]">·</span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
               <span aria-hidden="true">✦</span>
               <span>Extracted &amp; Confirmed Brief</span>
@@ -185,11 +181,11 @@ export function EditableGroundedContext({
         <div className="self-start sm:self-auto">
           {isLeadPersona ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-[#cce5d8] bg-[#edf7f2] px-3 py-1 text-xs font-medium text-[#1f6a47]">
-              <span>Team Lead Mode (Editing &amp; Additions Enabled)</span>
+              <span>Team Lead (Editing enabled)</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full border border-[#ebe6dd] bg-[#faf9f6] px-3 py-1 text-xs font-medium text-[#5c5852]">
-              <span>Employee Persona (Read-Only)</span>
+              <span>Teammate (Read-only)</span>
             </span>
           )}
         </div>

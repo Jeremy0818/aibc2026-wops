@@ -43,14 +43,14 @@ export function ProposalsHubView() {
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
-        title="My Preparation Proposals"
+        title="Preparation proposals"
         description="Your personal ideas, recommendations, and talking points synthesized from completed AI preparation calls."
         actions={
           <Link
             href="/prepare"
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-4 py-2.5 text-xs font-semibold text-[#1f1e1c] shadow-xs transition hover:bg-[#f4f1ea]"
           >
-            Go to Assigned Preparations →
+            Assigned preparations →
           </Link>
         }
       />
@@ -62,15 +62,15 @@ export function ProposalsHubView() {
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold text-[#1f1e1c]">
-            Personal Preparation · Not a Final Team Decision
+            Personal preparation · Not a final team decision
           </span>
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-            Pre-Meeting Thinking
+            Pre-meeting thinking
           </span>
         </div>
         <p className="mt-1">
-          Each assigned team member independently explores their own discipline before the team meets.
-          The actual meeting is where everyone shares their thinking, discusses trade-offs, and aligns on collective decisions.
+          Each teammate prepares independently before the meeting. You&apos;ll bring these ideas to share,
+          discuss trade-offs, and align when the team meets.
         </p>
       </section>
 
@@ -84,15 +84,14 @@ export function ProposalsHubView() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                  Demo Persona Switcher (Testing Only)
+                  Demo role switcher
                 </span>
                 <span className="text-[11px] text-[#8a847b]">
-                  Personal Privacy Simulation · No Shared Drafts
+                  Simulates private teammate view
                 </span>
               </div>
               <p className="mt-1 text-xs text-[#5c5852]">
-                Switch between assigned team members to verify that preparation proposals are strictly private to each employee.
-                Completing Nadia&apos;s call generates her strategy proposal; Bima has no proposal until he finishes his own creative session.
+                Switch between teammates to test how proposals remain personal to each person until shared in the team meeting.
               </p>
             </div>
           </div>

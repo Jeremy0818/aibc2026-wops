@@ -84,12 +84,12 @@ export function ActiveCallScreen({
 
   // Active status text
   const statusHeadline = {
-    idle: "Ready to spar",
-    ringing: "Connecting...",
-    listening: "Listening to your thoughts...",
-    thinking: "WOPS! is synthesizing strategic context...",
+    idle: "Ready when you are",
+    ringing: "Connecting call...",
+    listening: "Listening...",
+    thinking: "Thinking through your point...",
     speaking: "WOPS! is speaking...",
-    muted: "Microphone muted",
+    muted: "Microphone is muted",
     disconnected: "Call ended",
   }[visualState];
 
@@ -214,7 +214,7 @@ export function ActiveCallScreen({
               onClick={() => void handleRespond()}
               className="inline-flex min-h-12 w-full max-w-sm items-center justify-center gap-2 rounded-full bg-[#d95d39] px-6 py-3 text-xs font-semibold text-white shadow-md transition hover:bg-[#c34e2c] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
             >
-              <span>{isSubmitting ? "Transcribing & logging..." : isLastTurn ? "Confirm Final Alignment" : "Speak Suggested Response"}</span>
+              <span>{isSubmitting ? "Transcribing..." : isLastTurn ? "Confirm alignment & finish" : "Say suggested response"}</span>
               <span aria-hidden="true">→</span>
             </button>
           )}
@@ -240,7 +240,7 @@ export function ActiveCallScreen({
               className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#ebe6dd] bg-white px-4 py-2 text-xs font-medium text-[#1f1e1c] transition hover:bg-[#faf9f6]"
             >
               <span aria-hidden="true">⚙️</span>
-              <span>Mic Hardware Test</span>
+              <span>Test microphone</span>
             </button>
 
             <button

@@ -75,15 +75,15 @@ export function PrepareHubView() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Employee Preparation"
-        title="Your Assigned Preparations"
+        eyebrow="Teammate preparation"
+        title="Your assigned preparations"
         description="Review the shared client brief uploaded by your Team Lead and run a 1-on-1 voice session tailored to your role before the team meets."
         actions={
           <Link
             href="/meetings"
             className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-4 py-2 text-xs font-medium text-[#1f1e1c] transition hover:bg-[#f4f1ea]"
           >
-            Team Lead Setup View →
+            Team Lead setup view →
           </Link>
         }
       />
@@ -98,10 +98,10 @@ export function PrepareHubView() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                  Demo Employee Switcher
+                  Demo perspective switcher
                 </span>
                 <span className="rounded-full bg-[#f4f1ea] px-2 py-0.5 text-[10px] font-semibold text-[#5c5852]">
-                  Demo Mode Only
+                  Demo mode
                 </span>
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-[#5c5852]">

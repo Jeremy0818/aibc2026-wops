@@ -170,15 +170,11 @@ export function DocumentUploadCard({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[#d95d39]">
-              Area 1
-            </span>
-            <span aria-hidden="true" className="text-[#dcd4c6]">·</span>
             <h2
               id="client-brief-documents-heading"
               className="text-base font-semibold text-[#1f1e1c] sm:text-lg"
             >
-              Client Brief Documents
+              Client documents
             </h2>
             <span className="rounded-full bg-[#f4f1ea] px-2.5 py-0.5 text-[11px] font-medium text-[#5c5852]">
               {documents.length === 0
@@ -187,11 +183,11 @@ export function DocumentUploadCard({
             </span>
             {isLeadPersona ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#cce5d8] bg-[#edf7f2] px-2.5 py-0.5 text-[11px] font-medium text-[#1f6a47]">
-                <span>Lead Manageable</span>
+                <span>Team Lead (Uploads enabled)</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#ebe6dd] bg-[#faf9f6] px-2.5 py-0.5 text-[11px] font-medium text-[#5c5852]">
-                <span>Employee Read-Only</span>
+                <span>Teammate (Read-only)</span>
               </span>
             )}
           </div>
@@ -202,7 +198,7 @@ export function DocumentUploadCard({
           </p>
           {isLeadPersona ? (
             <p className="mt-1 text-[11px] text-[#8a847c]">
-              Note: Contract V2 supports append-only uploads. Document replacement and removal endpoints are pending backend contract extension.
+              Note: Current API supports append-only uploads. Replacing and removing documents will be enabled once backend endpoints are available.
             </p>
           ) : null}
         </div>

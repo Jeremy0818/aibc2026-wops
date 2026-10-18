@@ -140,14 +140,14 @@ export function CreateMeetingForm() {
             <span>Back to meetings</span>
           </Link>
           <p className="text-xs font-medium text-[#d95d39]">
-            Team Lead · Meeting Setup
+            Team Lead
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-[#1f1e1c] sm:text-3xl">
-            Create Meeting
+            New meeting
           </h1>
           <p className="max-w-lg text-sm leading-relaxed text-[#5c5852]">
-            Add meeting basics, attach the client&apos;s documents, and assign your
-            team. WOPS! extracts the brief for you — no manual transcription required.
+            Set the meeting goals, attach the client&apos;s brief, and assign your
+            teammates. WOPS! extracts the key facts so no one starts from a blank page.
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export function CreateMeetingForm() {
             className="inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 self-start rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-4 py-2 text-xs font-medium text-[#b44322] transition hover:bg-[#fae5dc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39] sm:self-auto"
           >
             <span aria-hidden="true">✦</span>
-            <span>Fill KOVA demo basics &amp; team</span>
+            <span>Fill with KOVA demo data</span>
           </button>
         ) : null}
       </div>
@@ -169,7 +169,7 @@ export function CreateMeetingForm() {
           <SectionHeading
             step={1}
             title="Meeting basics"
-            description="Essential meeting metadata. The client campaign brief will be extracted from the documents below."
+            description="Name, client, and the single internal outcome your team wants to achieve."
           />
           <fieldset disabled={formDisabled} className="mt-5 space-y-4">
             <div>
@@ -260,7 +260,7 @@ export function CreateMeetingForm() {
           <SectionHeading
             step={2}
             title="Client documents"
-            description="Attach client briefs once for the whole team. WOPS! extracts objectives, audience, budget ceiling, and constraints with source citations."
+            description="Drop in the client brief PDF. WOPS! extracts goals, audience, budget boundaries, and guardrails with exact citations."
           />
           <div className="mt-5">
             <ClientDocumentsPicker
@@ -280,12 +280,12 @@ export function CreateMeetingForm() {
           <SectionHeading
             step={3}
             title="Who's preparing?"
-            description="All assigned employees share the same client document brief. Each role gets its own tailored AI preparation session."
+            description="Everyone shares the same grounded brief, but each teammate gets an AI sparring session tailored to their role."
           />
           <fieldset disabled={formDisabled} className="mt-5 space-y-4">
             <div>
               <label htmlFor="lead-role" className="block text-xs font-medium text-[#1f1e1c]">
-                Your role (meeting owner) <span className="text-[#d95d39]">*</span>
+                Your role (Team Lead) <span className="text-[#d95d39]">*</span>
               </label>
               <input
                 id="lead-role"
@@ -302,7 +302,7 @@ export function CreateMeetingForm() {
             <div className="border-t border-[#ebe6dd] pt-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-[#1f1e1c]">
-                  Assigned employees <span className="text-[#d95d39]">*</span>
+                  Assigned teammates <span className="text-[#d95d39]">*</span>
                 </p>
                 <button
                   type="button"
@@ -314,7 +314,7 @@ export function CreateMeetingForm() {
                   }
                   className="text-xs font-medium text-[#d95d39] hover:underline"
                 >
-                  + Add employee
+                  + Add teammate
                 </button>
               </div>
 
@@ -332,7 +332,7 @@ export function CreateMeetingForm() {
                       <input
                         type="text"
                         value={person.name}
-                        aria-label={`Employee ${index + 1} name`}
+                        aria-label={`Teammate ${index + 1} name`}
                         onChange={(e) => update({ name: e.target.value })}
                         placeholder="Name (e.g., Nadia Kusuma)"
                         aria-invalid={Boolean(fieldErrors[`participants.${index}.name`])}
@@ -341,7 +341,7 @@ export function CreateMeetingForm() {
                       <input
                         type="text"
                         value={person.role}
-                        aria-label={`Employee ${index + 1} role`}
+                        aria-label={`Teammate ${index + 1} role`}
                         onChange={(e) => update({ role: e.target.value })}
                         placeholder="Role (e.g., Campaign Planner)"
                         aria-invalid={Boolean(fieldErrors[`participants.${index}.role`])}
@@ -351,7 +351,7 @@ export function CreateMeetingForm() {
                         <input
                           type="email"
                           value={person.email}
-                          aria-label={`Employee ${index + 1} email (optional)`}
+                          aria-label={`Teammate ${index + 1} email (optional)`}
                           onChange={(e) => update({ email: e.target.value })}
                           placeholder="Email (optional)"
                           className="w-full rounded-xl border border-[#ebe6dd] bg-white px-3 py-2 text-base text-[#1f1e1c] placeholder:text-[#8a847c] sm:text-xs"
@@ -364,7 +364,7 @@ export function CreateMeetingForm() {
                                 prev.filter((_, i) => i !== index)
                               )
                             }
-                            aria-label={`Remove employee ${index + 1}`}
+                            aria-label={`Remove teammate ${index + 1}`}
                             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#ebe6dd] bg-white text-xs text-[#5c5852] hover:bg-[#f4f1ea]"
                           >
                             ✕
@@ -393,8 +393,8 @@ export function CreateMeetingForm() {
         <section className="wops-warm-card rounded-3xl p-5 sm:p-7">
           <SectionHeading
             step={4}
-            title="Review the extracted brief & finalize"
-            description="Source-backed facts extracted from your documents. Confirming setup unlocks role-aware AI preparation for your team."
+            title="Review & finalize"
+            description="Check the facts extracted from your documents. Confirming setup unlocks AI preparation calls for your team."
           />
           <div className="mt-5">
             <SetupReviewPanel

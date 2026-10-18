@@ -244,16 +244,14 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-[#f5d5c8] bg-[#fdf1ec] px-2.5 py-0.5 text-[11px] font-medium text-[#b44322]">
-                  Demo Persona Switcher (Testing Only)
+                  Demo role switcher
                 </span>
                 <span className="text-[11px] text-[#8a847b]">
-                  Not real authentication · Simulates assigned role login
+                  Testing preview · Simulates teammate view
                 </span>
               </div>
               <p className="mt-1 text-xs text-[#5c5852]">
-                Switch between assigned team members on this meeting to test how
-                WOPS! adapts the AI thinking partner to each role without
-                changing the shared brief. In production, each employee accesses their preparation call via their authenticated identity.
+                Switch between assigned teammates to see how WOPS! adapts the AI thinking partner to each role while keeping the shared brief identical.
               </p>
             </div>
           </div>
@@ -465,9 +463,9 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
               {/* Draft Status Advisory */}
               {meeting.status === "draft" && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-900">
-                  <p className="font-semibold">Notice: Meeting setup is in draft</p>
+                  <p className="font-semibold">Note: Meeting brief is still in draft</p>
                   <p className="mt-0.5 text-amber-800">
-                    The Team Lead has not yet confirmed the final shared brief. In Live API mode, preparation begins once setup is finalized. For testing, you can simulate your role call now.
+                    The Team Lead hasn&apos;t finalized the shared brief yet. In production, calls trigger automatically after finalization. In demo mode, you can test your prep call now.
                   </p>
                 </div>
               )}
@@ -482,11 +480,11 @@ export function EmployeePrepareView({ meetingId }: EmployeePrepareViewProps) {
                     className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#d95d39] px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#c34e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d95d39]"
                   >
                     <span aria-hidden="true">📞</span>
-                    <span>Simulate Incoming AI Call as {activeRoleTitle}</span>
+                    <span>Start preparation call as {activeRoleTitle}</span>
                   </button>
 
                   <p className="text-center text-[11px] text-[#8a847c]">
-                    Sprint A3a Demo · Simulates proactive in-app call with deterministic role sparring. Real Gemini Live audio will connect in backend sprint.
+                    Demo mode · Simulates the proactive 1-on-1 preparation call for your role. Real Gemini Live audio connects in production.
                   </p>
                 </>
               ) : (

@@ -29,17 +29,17 @@ export function CallSummaryView({
         </div>
 
         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#1f1e1c]">
-          Preparation Call Complete
+          Great session! You&apos;re ready.
         </h1>
 
         <p className="mt-1 text-xs text-[#5c5852]">
-          WOPS! Demo Mode · Role-Specific Preparation for {participant.name} ({participant.role})
+          WOPS! Demo · Preparation for {participant.name} ({participant.role})
         </p>
 
-        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-[#8a847c]">
-          You have successfully completed the 4-stage ideation call for{" "}
-          <strong className="text-[#1f1e1c]">{meeting.title}</strong>. Your strategic priorities
-          and decisions have been captured to align the upcoming team review.
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-[#5c5852]">
+          You completed your 4-stage ideation call for{" "}
+          <strong className="text-[#1f1e1c]">{meeting.title}</strong>. Your ideas,
+          confirmed decisions, and discussion questions are ready in your personal proposal.
         </p>
 
         {/* Action Controls */}
@@ -48,7 +48,7 @@ export function CallSummaryView({
             href="/prepare"
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#d95d39] px-6 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#c34e2c]"
           >
-            ← Return to Assigned Preparations
+            ← Back to preparations
           </Link>
 
           <button
@@ -56,7 +56,7 @@ export function CallSummaryView({
             onClick={onResetCall}
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#ebe6dd] bg-white px-5 py-2.5 text-xs font-medium text-[#1f1e1c] transition hover:bg-[#faf9f6]"
           >
-            Run Call Again (Demo)
+            Run call again (Demo)
           </button>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function CallSummaryView({
               id="confirmed-decisions-heading"
               className="text-base font-semibold text-[#1f1e1c]"
             >
-              Confirmed Role Decisions ({decisions.length})
+              Confirmed decisions ({decisions.length})
             </h2>
             <p className="text-xs text-[#5c5852]">
               Decisions captured and grounded during your preparation call.
@@ -126,10 +126,10 @@ export function CallSummaryView({
                 id="open-questions-heading"
                 className="text-base font-semibold text-[#1f1e1c]"
               >
-                Open Questions for Team Meeting ({openQuestions.length})
+                Questions for the team meeting ({openQuestions.length})
               </h2>
               <p className="text-xs text-[#5c5852]">
-                Key alignment questions flagged to bring into the team review.
+                Key alignment questions flagged to discuss when the team meets.
               </p>
             </div>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800">
@@ -177,7 +177,7 @@ export function CallSummaryView({
             }
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#d95d39] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#c34e2c]"
           >
-            View My Preparation Proposal →
+            View my preparation proposal →
           </Link>
         </div>
       </div>
